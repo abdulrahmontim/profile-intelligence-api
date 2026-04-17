@@ -1,8 +1,8 @@
-from django.urls import path
-from . import views
-
+from django.urls import path, re_path
+from .views import ProfileListCreateView, ProfileDetailView
 
 urlpatterns = [
-    path("api/profiles/", views.ProfileListCreateView.as_view(), name="profile-list-create"),
-    path("api/profiles/<uuid:id>", views.ProfileDetailView.as_view(), name="profile-detail")
+    # Using re_path allows the slash to be optional (?)
+    re_path(r'^api/profiles/?$', ProfileListCreateView.as_view()),
+    re_path(r'^api/profiles/(?P<id>[^/]+)/?$', ProfileDetailView.as_view()),
 ]
