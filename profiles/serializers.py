@@ -7,3 +7,9 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
         read_only_fields = ['id', 'created_at']
+
+
+class ProfileListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ['id', 'name', 'gender', 'age', 'age_group', 'country_id']

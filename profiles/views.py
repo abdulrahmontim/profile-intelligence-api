@@ -1,8 +1,9 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.shortcuts import get_object_or_404
 from .models import Profile
-from.serializers import ProfileSerializer
+from .serializers import ProfileSerializer, ProfileListSerializer
 import requests
 
 
@@ -88,6 +89,41 @@ class ProfileListCreateView(APIView):
     
     
     def get(self, request):
-        return Response({"status": "testing"})
+        profiles = Profile.objects.all()
+        
+        gender = request.query_params.get("gender")
+        country_id = request.query_params.get("country_id")
+        age_group = request.query_params.get("age_group")
+        
+        if gender:
+            profiles = profiles.filter(gender__iexact=gender)
+        if country_id:
+            profiles = profiles.filter(country_id__iexact=country_id)
+        if age_group:
+            profiles = profiles.filter(age_group__iexact=age_group)
+        
+        serializer = ProfileListSerializer(profiles, many=True)
+        
+        return Response({
+            "status": "success",
+            "count": profiles.count(),
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
 
+
+class ProfileDetailView(APIView):
+    def get(self, request, id):
+        profile = get_object_or_404(Profile, pk=id)
+        serializer = ProfileSerializer(profile)
+        
+        return Response({
+            "status": "success", 
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+        
+    def delete(self, request, id):
+        profile = get_object_or_404(Profile, pk=id)
+        profile.delete()
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
     
