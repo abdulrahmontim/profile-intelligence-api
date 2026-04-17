@@ -16,7 +16,7 @@ class ProfileListCreateView(APIView):
                 "message": "Missing name"
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        existing_profile = Profile.objects.filter(name=name).exists()
+        existing_profile = Profile.objects.filter(name=name).first()
         if existing_profile:
             serializer = ProfileSerializer(existing_profile)
             return Response({
@@ -26,19 +26,22 @@ class ProfileListCreateView(APIView):
             }, status=status.HTTP_200_OK)
         
         try:
-            gender_res = request.get(f"https://api.genderize.io?name={name}").json()
-            age_res = request.get(f"https://api.agify.io?name={name}").json()
-            nationality_res = request.get(f"https://api.nationalize.io?name={name}").json()
+            gender_res = requests.get(f"https://api.genderize.io?name={name}").json()
+            age_res = requests.get(f"https://api.agify.io?name={name}").json()
+            nationality_res = requests.get(f"https://api.nationalize.io?name={name}").json()
 
             if not gender_res.get("gender") or gender_res.get("count") == 0:
                 return Response({"status": "502",
-                                 "message": "Genderize returned an invalid response"})
+                                 "message": "Genderize returned an invalid response"},
+                                status=status.HTTP_502_BAD_GATEWAY)
             if age_res.get("age") is None:
                 return Response({"status": "502",
-                                 "message": "Agify returned an invalid response"})
+                                 "message": "Agify returned an invalid response"},
+                                status=status.HTTP_502_BAD_GATEWAY)
             if not nationality_res.get("country"):
                 return Response({"status": "502",
-                                 "message": "Nationalize returned an invalid response"})
+                                 "message": "Nationalize returned an invalid response"},
+                                status=status.HTTP_502_BAD_GATEWAY)
 
             top_country = None
             highest_prob = 0
@@ -76,7 +79,7 @@ class ProfileListCreateView(APIView):
             return Response({
                 "status": "success",
                 "data": serializer.data
-            })
+            }, status=status.HTTP_201_CREATED)
 
         except Exception:
             return Response({"status": "error",
