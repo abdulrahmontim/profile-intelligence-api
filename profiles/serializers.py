@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import Profile
 
 class ProfileSerializer(serializers.ModelSerializer):
+    gender_probability = serializers.FloatField()
+    country_probability = serializers.FloatField()
     class Meta:
         model = Profile
         fields = '__all__'

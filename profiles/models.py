@@ -11,7 +11,7 @@ class Profile(models.Model):
        ("female", "Female")
     ]
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
-    gender_probability = models.FloatField()
+    gender_probability = models.DecimalField(max_digits=3, decimal_places=2)
     sample_size = models.IntegerField()
     age = models.IntegerField()
     
@@ -23,7 +23,7 @@ class Profile(models.Model):
     ]
     age_group = models.CharField(max_length=10, choices=AGE_GROUPS)
     country_id = models.CharField(max_length=10)
-    country_probability = models.FloatField()
+    country_probability = models.DecimalField(max_digits=3, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
