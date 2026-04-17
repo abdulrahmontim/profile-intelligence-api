@@ -1,7 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.shortcuts import get_object_or_404
 from .models import Profile
 from .serializers import ProfileSerializer, ProfileListSerializer
 import requests
@@ -9,13 +8,21 @@ import requests
 
 class ProfileListCreateView(APIView):
     def post(self, request):
-        name = request.data.get("name", "").lower()
+        name = request.data.get("name")
         
         if not name:
             return Response({
                 "status": "error",
-                "message": "Missing name"
+                "message": "Missing or empty name"
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not isinstance(name, str):
+            return Response({
+                "status": "error",
+                "message": "Invalid type"
+            }, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+        name = name.strip().lower()
         
         existing_profile = Profile.objects.filter(name=name).first()
         if existing_profile:
@@ -27,20 +34,20 @@ class ProfileListCreateView(APIView):
             }, status=status.HTTP_200_OK)
         
         try:
-            gender_res = requests.get(f"https://api.genderize.io?name={name}").json()
-            age_res = requests.get(f"https://api.agify.io?name={name}").json()
-            nationality_res = requests.get(f"https://api.nationalize.io?name={name}").json()
+            gender_res = requests.get(f"https://api.genderize.io?name={name}", timeout=10).json()
+            age_res = requests.get(f"https://api.agify.io?name={name}", timeout=10).json()
+            nationality_res = requests.get(f"https://api.nationalize.io?name={name}", timeout=10).json()
 
             if not gender_res.get("gender") or gender_res.get("count") == 0:
-                return Response({"status": "502",
+                return Response({"status": "error",
                                  "message": "Genderize returned an invalid response"},
                                 status=status.HTTP_502_BAD_GATEWAY)
             if age_res.get("age") is None:
-                return Response({"status": "502",
+                return Response({"status": "error",
                                  "message": "Agify returned an invalid response"},
                                 status=status.HTTP_502_BAD_GATEWAY)
             if not nationality_res.get("country"):
-                return Response({"status": "502",
+                return Response({"status": "error",
                                  "message": "Nationalize returned an invalid response"},
                                 status=status.HTTP_502_BAD_GATEWAY)
 
@@ -113,7 +120,14 @@ class ProfileListCreateView(APIView):
 
 class ProfileDetailView(APIView):
     def get(self, request, id):
-        profile = get_object_or_404(Profile, pk=id)
+        try:
+            profile = Profile.objects.get(pk=id)
+        except Profile.DoesNotExist:
+            return Response({
+            "status": "error",
+            "message": "Profile not found"
+        }, status=status.HTTP_404_NOT_FOUND)
+            
         serializer = ProfileSerializer(profile)
         
         return Response({
@@ -122,7 +136,14 @@ class ProfileDetailView(APIView):
         }, status=status.HTTP_200_OK)
         
     def delete(self, request, id):
-        profile = get_object_or_404(Profile, pk=id)
+        try:
+            profile = Profile.objects.get(pk=id)
+        except Profile.DoesNotExist:
+            return Response({
+            "status": "error",
+            "message": "Profile not found"
+        }, status=status.HTTP_404_NOT_FOUND)
+        
         profile.delete()
         
         return Response(status=status.HTTP_204_NO_CONTENT)
