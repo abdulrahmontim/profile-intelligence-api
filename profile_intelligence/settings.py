@@ -117,6 +117,9 @@ USE_I18N = True
 USE_TZ = True
 
 REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
     'DATETIME_FORMAT': "%Y-%m-%dT%H:%M:%SZ",
 }
 
