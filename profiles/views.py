@@ -97,17 +97,36 @@ class ProfileListCreateView(APIView):
     
     def get(self, request):
         profiles = Profile.objects.all()
-        
+
         gender = request.query_params.get("gender")
         country_id = request.query_params.get("country_id")
         age_group = request.query_params.get("age_group")
+        min_age = request.query_params.get("min_age")
+        max_age = request.query_params.get("max_age")
+        min_gender_prob = request.query_params.get("min_gender_probability")
+        min_country_prob = request.query_params.get("min_country_probability")
         
         if gender:
-            profiles = profiles.filter(gender__iexact=gender)
+                profiles = profiles.filter(gender__iexact=gender)
         if country_id:
-            profiles = profiles.filter(country_id__iexact=country_id)
+                profiles = profiles.filter(country_id__iexact=country_id)
         if age_group:
-            profiles = profiles.filter(age_group__iexact=age_group)
+                profiles = profiles.filter(age_group__iexact=age_group)
+                
+        try:
+            if min_age:
+                    profiles = profiles.filter(age__gte=int(min_age))
+            if max_age:
+                    profiles = profiles.filter(age__lte=int(max_age))
+            if min_gender_prob:
+                    profiles = profiles.filter(gender_probability__gte=float(min_gender_prob))
+            if min_country_prob:
+                    profiles = profiles.filter(country_probability__gte=float(min_country_prob))
+
+        except ValueError:
+            return Response({"status": "error",
+                             "message": "Invalid query parameters"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
         
         serializer = ProfileListSerializer(profiles, many=True)
         
