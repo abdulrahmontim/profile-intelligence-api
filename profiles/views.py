@@ -127,6 +127,15 @@ class ProfileListCreateView(APIView):
             return Response({"status": "error",
                              "message": "Invalid query parameters"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
+        sort_by = request.query_params.get("sort_by")
+        order = request.query_params.get("order", "asc")
+        sort_fields = ["age", "created_at", "gender_probability"]
+        
+        if sort_by in sort_fields:
+            if order == "desc":
+                sort_by = f"-{sort_by}"
+            
+            profiles =  profiles.order_by(sort_by)
         
         serializer = ProfileListSerializer(profiles, many=True)
         
