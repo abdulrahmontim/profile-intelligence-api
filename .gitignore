@@ -7,4 +7,3 @@ db.sqlite3
 .idea/
 Thumbs.db
 .DS_Store
-seed_profiles.json
