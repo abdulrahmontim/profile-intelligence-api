@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Profile
 from .serializers import ProfileSerializer, ProfileListSerializer
+from .pagination import ProfilePagination
 import requests
 
 
@@ -137,13 +138,16 @@ class ProfileListCreateView(APIView):
             
             profiles =  profiles.order_by(sort_by)
         
-        serializer = ProfileListSerializer(profiles, many=True)
+        paginator = ProfilePagination()
+        paginated_profiles = paginator.paginate_queryset(profiles, request)
         
-        return Response({
-            "status": "success",
-            "count": profiles.count(),
-            "data": serializer.data
-        }, status=status.HTTP_200_OK)
+        if paginated_profiles is not None:
+            serializer = ProfileListSerializer(paginated_profiles, many=True)
+            
+            return paginator.get_paginated_response(serializer.data)
+        
+        serializer = ProfileSerializer(paginated_profiles, many=True)
+        return Response(serializer.data)
 
 
 class ProfileDetailView(APIView):
