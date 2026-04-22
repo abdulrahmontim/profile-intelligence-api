@@ -148,7 +148,7 @@ class ProfileListCreateView(APIView):
             
             return paginator.get_paginated_response(serializer.data)
         
-        serializer = ProfileSerializer(paginated_profiles, many=True)
+        serializer = ProfileListSerializer(profiles, many=True)
         return Response(serializer.data)
 
 
