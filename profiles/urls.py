@@ -1,7 +1,8 @@
-from django.urls import path, re_path
-from .views import ProfileListCreateView, ProfileDetailView
+from django.urls import path
+from .views import ProfileListCreateView, ProfileDetailView, ProfileSearchView
 
 urlpatterns = [
-    re_path(r'^api/profiles/?$', ProfileListCreateView.as_view()),
-    re_path(r'^api/profiles/(?P<id>[^/]+)/?$', ProfileDetailView.as_view()),
+    path("api/profiles", ProfileListCreateView.as_view()),
+    path("api/profiles/search", ProfileSearchView.as_view()),
+    path("api/profiles/<uuid:id>", ProfileDetailView.as_view()),
 ]
