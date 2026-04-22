@@ -181,6 +181,9 @@ class ProfileDetailView(APIView):
         profile.delete()
         
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProfileSearchView(APIView):
     
     def get(self, request):
         query = request.query_params.get("q")
