@@ -1,9 +1,11 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.core.exceptions import ValidationError
 from .models import Profile
 from .serializers import ProfileSerializer, ProfileListSerializer
 from .pagination import ProfilePagination
+from .services import parse_query
 import requests
 
 
@@ -106,6 +108,9 @@ class ProfileListCreateView(APIView):
         max_age = request.query_params.get("max_age")
         min_gender_prob = request.query_params.get("min_gender_probability")
         min_country_prob = request.query_params.get("min_country_probability")
+        sort_by = request.query_params.get("sort_by")
+        order = request.query_params.get("order", "asc")
+        
         
         if gender:
                 profiles = profiles.filter(gender__iexact=gender)
@@ -127,11 +132,8 @@ class ProfileListCreateView(APIView):
         except ValueError:
             return Response({"status": "error",
                              "message": "Invalid query parameters"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
-
-        sort_by = request.query_params.get("sort_by")
-        order = request.query_params.get("order", "asc")
-        sort_fields = ["age", "created_at", "gender_probability"]
         
+        sort_fields = ["age", "created_at", "gender_probability"]
         if sort_by in sort_fields:
             if order == "desc":
                 sort_by = f"-{sort_by}"
@@ -154,7 +156,7 @@ class ProfileDetailView(APIView):
     def get(self, request, id):
         try:
             profile = Profile.objects.get(pk=id)
-        except Profile.DoesNotExist:
+        except (Profile.DoesNotExist, ValidationError):
             return Response({
             "status": "error",
             "message": "Profile not found"
@@ -170,7 +172,7 @@ class ProfileDetailView(APIView):
     def delete(self, request, id):
         try:
             profile = Profile.objects.get(pk=id)
-        except Profile.DoesNotExist:
+        except (Profile.DoesNotExist, ValidationError):
             return Response({
             "status": "error",
             "message": "Profile not found"
@@ -180,3 +182,32 @@ class ProfileDetailView(APIView):
         
         return Response(status=status.HTTP_204_NO_CONTENT)
     
+from django.http import HttpResponse
+class ProfileSearchView(APIView):
+    
+    def get(self, request):
+        query = request.query_params.get("q")
+        
+        if not query:
+            return Response({
+                "status": "error",
+                "message": "Invalid query parameters"
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            filters = parse_query(query)
+            
+        except ValueError:
+            return Response({
+                "status": "error",
+                "message": "Unable to interpret query"
+            }, status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        profiles = Profile.objects.filter(**filters)
+        
+        paginator = ProfilePagination()
+        paginated_profiles = paginator.paginate_queryset(profiles, request)
+        serializer = ProfileListSerializer(paginated_profiles, many=True)
+        
+        return paginator.get_paginated_response(serializer.data)
