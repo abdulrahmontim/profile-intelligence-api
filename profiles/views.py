@@ -201,8 +201,7 @@ class ProfileSearchView(APIView):
             return Response({
                 "status": "error",
                 "message": "Unable to interpret query"
-            }, status=status.HTTP_400_BAD_REQUEST
-            )
+            }, status=status.HTTP_400_BAD_REQUEST)
         
         profiles = Profile.objects.filter(**filters)
         
