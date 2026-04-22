@@ -181,8 +181,8 @@ class ProfileDetailView(APIView):
         profile.delete()
         
         return Response(status=status.HTTP_204_NO_CONTENT)
-    
-from django.http import HttpResponse
+
+
 class ProfileSearchView(APIView):
     
     def get(self, request):
