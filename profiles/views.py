@@ -148,7 +148,7 @@ class ProfileListCreateView(APIView):
             
             return paginator.get_paginated_response(serializer.data)
         
-        serializer = ProfileSerializer(paginated_profiles, many=True)
+        serializer = ProfileListSerializer(profiles, many=True)
         return Response(serializer.data)
 
 
@@ -181,8 +181,8 @@ class ProfileDetailView(APIView):
         profile.delete()
         
         return Response(status=status.HTTP_204_NO_CONTENT)
-    
-from django.http import HttpResponse
+
+
 class ProfileSearchView(APIView):
     
     def get(self, request):
