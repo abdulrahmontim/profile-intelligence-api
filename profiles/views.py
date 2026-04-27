@@ -5,11 +5,17 @@ from django.core.exceptions import ValidationError
 from .models import Profile
 from .serializers import ProfileSerializer, ProfileListSerializer
 from .pagination import ProfilePagination
+from .permissions import ReqAPIVersionHeader
 from .services import parse_query
 import requests
+from pycountry import countries
 
 
-class ProfileListCreateView(APIView):
+class ProfileBaseView():
+    permission_classes = [ReqAPIVersionHeader]
+
+
+class ProfileListCreateView(ProfileBaseView, APIView):
     def post(self, request):
         name = request.data.get("name")
         
@@ -74,7 +80,9 @@ class ProfileListCreateView(APIView):
                     age_group = "adult"
                 elif profile_age >= 60:
                     age_group = "senior"
-                    
+            
+            country_res = countries.get(alpha_2=top_country["country_id"])
+            
             profile = Profile.objects.create(
                 name=name,
                 gender=gender_res['gender'],
@@ -82,6 +90,7 @@ class ProfileListCreateView(APIView):
                 age=age_res['age'],
                 age_group=age_group,
                 country_id=top_country['country_id'],
+                country_name=country_res.name if country_res else None,
                 country_probability=top_country['probability']
             )
             
@@ -161,7 +170,7 @@ class ProfileListCreateView(APIView):
         return Response(serializer.data)
 
 
-class ProfileDetailView(APIView):
+class ProfileDetailView(ProfileBaseView, APIView):
     def get(self, request, id):
         try:
             profile = Profile.objects.get(pk=id)
@@ -191,9 +200,9 @@ class ProfileDetailView(APIView):
         
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
-class ProfileSearchView(APIView):
-    
+ 
+class ProfileSearchView(ProfileBaseView, APIView):
+ 
     def get(self, request):
         query = request.query_params.get("q")
         
