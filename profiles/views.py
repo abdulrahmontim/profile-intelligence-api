@@ -7,6 +7,7 @@ from .serializers import ProfileSerializer, ProfileListSerializer
 from .pagination import ProfilePagination
 from .services import parse_query
 import requests
+from pycountry import countries
 
 
 class ProfileListCreateView(APIView):
@@ -74,15 +75,17 @@ class ProfileListCreateView(APIView):
                     age_group = "adult"
                 elif profile_age >= 60:
                     age_group = "senior"
-                    
+            
+            country_res = countries.get(alpha_2=top_country["country_id"])
+            
             profile = Profile.objects.create(
                 name=name,
                 gender=gender_res['gender'],
                 gender_probability=gender_res['probability'],
-                sample_size=gender_res['count'],
                 age=age_res['age'],
                 age_group=age_group,
                 country_id=top_country['country_id'],
+                country_name=country_res.name if country_res else None,
                 country_probability=top_country['probability']
             )
             
