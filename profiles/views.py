@@ -5,12 +5,17 @@ from django.core.exceptions import ValidationError
 from .models import Profile
 from .serializers import ProfileSerializer, ProfileListSerializer
 from .pagination import ProfilePagination
+from .permissions import ReqAPIVersionHeader
 from .services import parse_query
 import requests
 from pycountry import countries
 
 
-class ProfileListCreateView(APIView):
+class ProfileBaseView():
+    permission_classes = [ReqAPIVersionHeader]
+
+
+class ProfileListCreateView(ProfileBaseView, APIView):
     def post(self, request):
         name = request.data.get("name")
         
@@ -155,7 +160,7 @@ class ProfileListCreateView(APIView):
         return Response(serializer.data)
 
 
-class ProfileDetailView(APIView):
+class ProfileDetailView(ProfileBaseView, APIView):
     def get(self, request, id):
         try:
             profile = Profile.objects.get(pk=id)
@@ -186,7 +191,7 @@ class ProfileDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 from django.http import HttpResponse
-class ProfileSearchView(APIView):
+class ProfileSearchView(ProfileBaseView, APIView):
     
     def get(self, request):
         query = request.query_params.get("q")
