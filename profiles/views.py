@@ -79,7 +79,6 @@ class ProfileListCreateView(APIView):
                 name=name,
                 gender=gender_res['gender'],
                 gender_probability=gender_res['probability'],
-                sample_size=gender_res['count'],
                 age=age_res['age'],
                 age_group=age_group,
                 country_id=top_country['country_id'],
