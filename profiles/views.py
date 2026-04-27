@@ -133,11 +133,21 @@ class ProfileListCreateView(APIView):
                              "message": "Invalid query parameters"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
         
         sort_fields = ["age", "created_at", "gender_probability"]
-        if sort_by in sort_fields:
-            if order == "desc":
-                sort_by = f"-{sort_by}"
-            
-            profiles =  profiles.order_by(sort_by)
+        order_fields = ["asc", "desc"]
+        order = order.lower().strip() if order else "asc"
+        
+        if order not in order_fields:
+            return Response({
+                "status": "error",
+                "message": "Invalid order parameter"
+            }, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        
+        if sort_by and sort_by in sort_fields:
+            ordering = f"-{sort_by}" if order == "desc" else sort_by
+        else:
+            ordering = "-created_at"
+
+        profiles = profiles.order_by(ordering, "id")
         
         paginator = ProfilePagination()
         paginated_profiles = paginator.paginate_queryset(profiles, request)
