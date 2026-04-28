@@ -13,12 +13,10 @@ from .services.parse_query import get_parse_query
 from .services.profile_csv import generate_profile_csv
 import requests
 from pycountry import countries
-from django.http import StreamingHttpResponse
 
 
 class ProfileBaseView():
-    # permission_classes = [ReqAPIVersionHeader]
-    ...
+    permission_classes = [ReqAPIVersionHeader]
 
 
 class ProfileListCreateView(ProfileBaseView, APIView):
@@ -188,7 +186,7 @@ class ProfileSearchView(ProfileBaseView, APIView):
         return paginator.get_paginated_response(serializer.data)
     
 
-class ProfileExportView(View):
+class ProfileExportView(View, ProfileBaseView):
 
     def get(self, request):
         format = request.GET.get("format")
