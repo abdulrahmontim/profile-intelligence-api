@@ -13,12 +13,10 @@ from .services.parse_query import get_parse_query
 from .services.profile_csv import generate_profile_csv
 import requests
 from pycountry import countries
-from django.http import StreamingHttpResponse
 
 
 class ProfileBaseView():
     permission_classes = [ReqAPIVersionHeader]
-    ...
 
 
 class ProfileListCreateView(ProfileBaseView, APIView):
