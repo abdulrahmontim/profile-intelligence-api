@@ -17,7 +17,7 @@ from django.http import StreamingHttpResponse
 
 
 class ProfileBaseView():
-    # permission_classes = [ReqAPIVersionHeader]
+    permission_classes = [ReqAPIVersionHeader]
     ...
 
 
