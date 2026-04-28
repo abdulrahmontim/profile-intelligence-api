@@ -10,6 +10,7 @@ idna==3.11
 packaging==26.1
 psycopg2-binary==2.9.11
 pycountry==26.2.16
+PyJWT==2.12.1
 requests==2.33.1
 sqlparse==0.5.5
 tzdata==2026.1
