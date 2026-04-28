@@ -1,18 +1,24 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.views import View
+from django.http import JsonResponse
 from django.core.exceptions import ValidationError
 from .models import Profile
 from .serializers import ProfileSerializer, ProfileListSerializer
 from .pagination import ProfilePagination
 from .permissions import ReqAPIVersionHeader
-from .services import parse_query
+from .services.profile_filter import get_profile_filter
+from .services.parse_query import get_parse_query
+from .services.profile_csv import generate_profile_csv
 import requests
 from pycountry import countries
+from django.http import StreamingHttpResponse
 
 
 class ProfileBaseView():
-    permission_classes = [ReqAPIVersionHeader]
+    # permission_classes = [ReqAPIVersionHeader]
+    ...
 
 
 class ProfileListCreateView(ProfileBaseView, APIView):
@@ -107,56 +113,7 @@ class ProfileListCreateView(ProfileBaseView, APIView):
     
     
     def get(self, request):
-        profiles = Profile.objects.all()
-
-        gender = request.query_params.get("gender")
-        country_id = request.query_params.get("country_id")
-        age_group = request.query_params.get("age_group")
-        min_age = request.query_params.get("min_age")
-        max_age = request.query_params.get("max_age")
-        min_gender_prob = request.query_params.get("min_gender_probability")
-        min_country_prob = request.query_params.get("min_country_probability")
-        sort_by = request.query_params.get("sort_by")
-        order = request.query_params.get("order", "asc")
-        
-        
-        if gender:
-                profiles = profiles.filter(gender__iexact=gender)
-        if country_id:
-                profiles = profiles.filter(country_id__iexact=country_id)
-        if age_group:
-                profiles = profiles.filter(age_group__iexact=age_group)
-                
-        try:
-            if min_age:
-                    profiles = profiles.filter(age__gte=int(min_age))
-            if max_age:
-                    profiles = profiles.filter(age__lte=int(max_age))
-            if min_gender_prob:
-                    profiles = profiles.filter(gender_probability__gte=float(min_gender_prob))
-            if min_country_prob:
-                    profiles = profiles.filter(country_probability__gte=float(min_country_prob))
-
-        except ValueError:
-            return Response({"status": "error",
-                             "message": "Invalid query parameters"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
-        
-        sort_fields = ["age", "created_at", "gender_probability"]
-        order_fields = ["asc", "desc"]
-        order = order.lower().strip() if order else "asc"
-        
-        if order not in order_fields:
-            return Response({
-                "status": "error",
-                "message": "Invalid order parameter"
-            }, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
-        
-        if sort_by and sort_by in sort_fields:
-            ordering = f"-{sort_by}" if order == "desc" else sort_by
-        else:
-            ordering = "-created_at"
-
-        profiles = profiles.order_by(ordering, "id")
+        profiles = get_profile_filter(request)
         
         paginator = ProfilePagination()
         paginated_profiles = paginator.paginate_queryset(profiles, request)
@@ -213,7 +170,7 @@ class ProfileSearchView(ProfileBaseView, APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
             
         try:
-            filters = parse_query(query)
+            filters = get_parse_query(query)
             
         except ValueError:
             return Response({
@@ -229,3 +186,26 @@ class ProfileSearchView(ProfileBaseView, APIView):
         serializer = ProfileListSerializer(paginated_profiles, many=True)
         
         return paginator.get_paginated_response(serializer.data)
+    
+
+class ProfileExportView(View):
+
+    def get(self, request):
+        format = request.GET.get("format")
+
+        if format != "csv":
+            return JsonResponse({
+                "status": "error",
+                "message": "Only csv format is supported"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            profiles = get_profile_filter(request)
+        except ValueError as e:
+            return JsonResponse({
+                "status": "error",
+                "message": str(e)
+            }, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+        return generate_profile_csv(profiles)
+            
