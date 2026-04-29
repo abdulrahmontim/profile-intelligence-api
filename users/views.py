@@ -88,6 +88,60 @@ class GithubCallbackView(APIView):
         })
         
 
+class GithubCLICallbackView(APIView):
+
+    def post(self, request):
+        code = request.data.get("code")
+        code_verifier = request.data.get("code_verifier")
+        redirect_uri = request.data.get("redirect_uri")
+
+        if not code or not code_verifier:
+            return Response({"status": "error", "message": "Missing code or verifier"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        token_res = httpx.post(
+            "https://github.com/login/oauth/access_token",
+            json={
+                "client_id": settings.GITHUB_CLIENT_ID,
+                "client_secret": settings.GITHUB_CLIENT_SECRET,
+                "code": code,
+                "code_verifier": code_verifier,
+                "redirect_uri": redirect_uri,
+            },
+            headers={"Accept": "application/json"},
+        )
+
+        github_token = token_res.json().get("access_token")
+        if not github_token:
+            return Response({"status": "error", "message": "Failed to exchange code"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        user_res = httpx.get(
+            "https://api.github.com/user",
+            headers={"Authorization": f"Bearer {github_token}"},
+        )
+        github_user = user_res.json()
+
+        user, created = User.objects.update_or_create(
+            github_id=str(github_user["id"]),
+            defaults={
+                "username": github_user["login"],
+                "email": github_user.get("email") or "",
+                "avatar_url": github_user.get("avatar_url") or "",
+            }
+        )
+        user.last_login_at = timezone.now()
+        user.save(update_fields=["last_login_at"])
+
+        tokens = issue_token_pair(user)
+
+        return Response({
+            "status": "success",
+            "username": user.username,
+            "role": user.role,
+            **tokens
+        })
+
 
 class GithubRefreshView(APIView):
     
