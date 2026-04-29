@@ -4,6 +4,8 @@ from rest_framework import status
 from django.views import View
 from django.http import JsonResponse
 from django.core.exceptions import ValidationError
+from django.utils.decorators import method_decorator
+from users.permissions import require_admin, require_analyst_or_admin
 from .models import Profile
 from .serializers import ProfileSerializer, ProfileListSerializer
 from .pagination import ProfilePagination
@@ -15,11 +17,13 @@ import requests
 from pycountry import countries
 
 
-class ProfileBaseView():
+
+@method_decorator(require_analyst_or_admin, name="get")
+@method_decorator(require_admin, name="post")
+class ProfileListCreateView(APIView):
+    
     permission_classes = [ReqAPIVersionHeader]
-
-
-class ProfileListCreateView(ProfileBaseView, APIView):
+    
     def post(self, request):
         name = request.data.get("name")
         
@@ -124,8 +128,12 @@ class ProfileListCreateView(ProfileBaseView, APIView):
         serializer = ProfileListSerializer(profiles, many=True)
         return Response(serializer.data)
 
-
-class ProfileDetailView(ProfileBaseView, APIView):
+@method_decorator(require_analyst_or_admin, name="get")
+@method_decorator(require_admin, name="delete")
+class ProfileDetailView(APIView):
+    
+    permission_classes = [ReqAPIVersionHeader]
+    
     def get(self, request, id):
         try:
             profile = Profile.objects.get(pk=id)
@@ -156,7 +164,10 @@ class ProfileDetailView(ProfileBaseView, APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
  
-class ProfileSearchView(ProfileBaseView, APIView):
+@method_decorator(require_analyst_or_admin, name="get")
+class ProfileSearchView(APIView):
+    
+    permission_classes = [ReqAPIVersionHeader]
  
     def get(self, request):
         query = request.query_params.get("q")
@@ -186,10 +197,17 @@ class ProfileSearchView(ProfileBaseView, APIView):
         return paginator.get_paginated_response(serializer.data)
     
 
+@method_decorator(require_analyst_or_admin, name="get")
 class ProfileExportView(View):
 
     def get(self, request):
         format = request.GET.get("format")
+        
+        if request.headers.get("X-API-Version") != "1":
+            return JsonResponse({
+                "status": "error",
+                "message": "API version header required"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         if format != "csv":
             return JsonResponse({
