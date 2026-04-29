@@ -91,6 +91,7 @@ DATABASES = {
     )
 }
 
+WEB_PORTAL_URL = os.environ.get("WEB_PORTAL_URL", "http://127.0.0.1:8001")
 AUTH_USER_MODEL = "users.User"
 JWT_SECRET = os.environ["JWT_SECRET"]
 GITHUB_CLIENT_ID = os.environ["GITHUB_CLIENT_ID"]

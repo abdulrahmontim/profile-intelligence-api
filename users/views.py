@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.http import HttpResponseRedirect
 from django.conf import settings
 from django.utils import timezone
 from .models import User, RefreshToken
@@ -135,12 +136,13 @@ class GithubCLICallbackView(APIView):
 
         tokens = issue_token_pair(user)
 
-        return Response({
-            "status": "success",
-            "username": user.username,
-            "role": user.role,
-            **tokens
-        })
+        redirect_url = (
+            f"{settings.WEB_PORTAL_URL}/auth/callback"
+            f"?access_token={tokens['access_token']}"
+            f"&refresh_token={tokens['refresh_token']}"
+            f"&username={user.username}"
+        )
+        return HttpResponseRedirect(redirect_url)
 
 
 class GithubRefreshView(APIView):
