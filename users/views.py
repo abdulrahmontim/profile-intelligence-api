@@ -83,11 +83,14 @@ class GithubCallbackView(APIView):
         
         tokens = issue_token_pair(user)
         
-        return Response({
-            "status": "success",
-            **tokens
-        })
-        
+        redirect_url = (
+            f"{settings.WEB_PORTAL_URL}/auth/callback"
+            f"?access_token={tokens['access_token']}"
+            f"&refresh_token={tokens['refresh_token']}"
+            f"&username={user.username}"
+        )
+        return HttpResponseRedirect(redirect_url)
+                
 
 class GithubCLICallbackView(APIView):
 
@@ -136,13 +139,12 @@ class GithubCLICallbackView(APIView):
 
         tokens = issue_token_pair(user)
 
-        redirect_url = (
-            f"{settings.WEB_PORTAL_URL}/auth/callback"
-            f"?access_token={tokens['access_token']}"
-            f"&refresh_token={tokens['refresh_token']}"
-            f"&username={user.username}"
-        )
-        return HttpResponseRedirect(redirect_url)
+        return Response({
+            "status": "success",
+            "username": user.username,
+            "role": user.role,
+            **tokens
+        })
 
 
 class GithubRefreshView(APIView):
