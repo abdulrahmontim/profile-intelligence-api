@@ -1,171 +1,419 @@
-# Profile Intelligence API
+# Insighta Labs+ — Profile Intelligence API
 
-A RESTful API for retrieving and analyzing user profile intelligence data.
+A secure, multi-interface platform for querying and managing profile intelligence data.
+Built for analysts, engineers, and internal stakeholders across CLI and web interfaces.
 
-## 🚀 Live API
+---
 
-**Deployed:** https://profile-intelligence-api.up.railway.app
+## System Architecture
 
-## Features
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│    CLI Tool      │     │   Web Portal     │     │   REST Client   │
+│  (insighta-cli) │     │ (insighta-web)   │     │ (Postman/curl)  │
+└────────┬─────────┘     └────────┬─────────┘     └────────┬────────┘
+         │                        │                         │
+         └────────────────────────┼─────────────────────────┘
+                                  │
+                       ┌──────────▼──────────┐
+                       │   Django Backend     │
+                       │   REST API           │
+                       │   (Railway)          │
+                       └──────────┬──────────┘
+                                  │
+               ┌──────────────────┼──────────────────┐
+               │                  │                  │
+      ┌────────▼────────┐  ┌──────▼──────┐  ┌───────▼────────┐
+      │   PostgreSQL     │  │   GitHub    │  │  External APIs  │
+      │   (Railway)      │  │   OAuth     │  │  genderize.io  │
+      └──────────────────┘  └─────────────┘  │  agify.io      │
+                                              │  nationalize.io│
+                                              └────────────────┘
+```
 
-- **Profile Intelligence Analysis**: Automatically analyze names to predict gender, age, and nationality.
-- **Natural Language Query Engine**: Search profiles using plain English (e.g., "young males from nigeria").
-- **Advanced Filtering**: Filter profiles by demographic groups, precise age ranges, and exact probability thresholds.
-- **Sorting & Pagination**: Fully paginated responses with customizable sorting parameters.
-- **Idempotent Operations**: Prevent duplicate profiles - same name returns existing data.
-- **RESTful API**: Clean, standardized API endpoints following REST principles.
-- **Real-time Data**: Fetch live intelligence data from external APIs (Genderize, Agify, Nationalize).
-- **UUID7 Primary Keys**: Time-ordered unique identifiers for better database performance.
-- **Comprehensive Error Handling**: Detailed error responses for API failures and invalid requests.
+### Repositories
+| Repo | Description |
+|------|-------------|
+| `profile-intelligence-api` | Django REST API backend |
+| `profile-intelligence-cli` | Command line tool |
+| `profile-intelligence-web` | Web portal |
 
-## Installation
+All three interfaces share the same backend. Data is consistent across all of them.
 
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/abdulrahmontim/profile-intelligence-api.git
-    cd profile-intelligence-api
-    ```
+---
 
-2. Create and activate virtual environment:
-    ```bash
-    python -m venv venv
-    source venv/bin/activate
-    ```
+## Authentication Flow
 
-3. Install dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
+### Web Flow (Browser)
+```
+Browser                     Backend                    GitHub
+   |                           |                          |
+   |-- GET /auth/github ------->|                          |
+   |                           |-- generate verifier      |
+   |                           |-- generate challenge     |
+   |                           |-- generate state         |
+   |                           |-- store in session       |
+   |<-- redirect to GitHub ----|                          |
+   |                                                      |
+   |-- authorize on GitHub ----------------------------- >|
+   |<-- redirect to /auth/github/callback?code=&state= --|
+   |                           |                          |
+   |-- GET /callback --------> |                          |
+   |                           |-- validate state         |
+   |                           |-- exchange code+verifier |
+   |                           |-- fetch github user      |
+   |                           |-- create/update user     |
+   |                           |-- issue token pair       |
+   |<-- access + refresh token-|                          |
+```
 
-4. Run migrations and seed data:
-    ```bash
-    python manage.py migrate
-    python manage.py seed_profiles
-    ```
+### CLI Flow
+```
+Terminal              Local Server (port 9876)        Backend
+   |                          |                          |
+   |-- insighta login ------> |                          |
+   |-- generate PKCE locally  |                          |
+   |-- open browser           |                          |
+   |                          |<-- GitHub callback ------|
+   |                          |-- capture code+state     |
+   |<-- code received --------|                          |
+   |-- POST code+verifier ---------------------------->  |
+   |<-- access + refresh token -----------------------   |
+   |-- save to ~/.insighta/credentials.json              |
+   |-- "Logged in as @username"                          |
+```
 
-5. Start the development server:
-    ```bash
-    python manage.py runserver
-    ```
+### Token Lifecycle
+| Token | Expiry | Storage |
+|-------|--------|---------|
+| Access token | 3 minutes | CLI: credentials.json / Web: HttpOnly cookie |
+| Refresh token | 5 minutes | DB (invalidated on use) |
 
-## Usage
+- Each refresh issues a **new pair** and immediately invalidates the old one
+- Logout invalidates the refresh token server-side
+- Expired access token → auto-refresh attempted → re-login if refresh also expired
 
-**Local Development:** http://localhost:8000
+---
+
+## User Roles
+
+| Role | Permissions |
+|------|-------------|
+| `admin` | Create profiles, delete profiles, read, search, export |
+| `analyst` | Read, search, export only |
+
+Default role on first login: `analyst`
+
+To promote a user to admin:
+```bash
+python manage.py shell
+```
+```python
+from users.models import User
+user = User.objects.get(username="github_username")
+user.role = "admin"
+user.save()
+```
 
 ---
 
 ## API Endpoints
 
-### 1. Create Profile
-**POST** `/api/profiles/`
+### Auth Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/auth/github` | Redirect to GitHub OAuth |
+| GET | `/auth/github/callback` | Handle OAuth callback, issue tokens |
+| POST | `/auth/refresh` | Rotate refresh token, issue new pair |
+| POST | `/auth/logout` | Invalidate refresh token server-side |
 
-**Request Body:**
+#### POST /auth/refresh
 ```json
-{
-  "name": "ella"
-}
-```
+// Request
+{ "refresh_token": "string" }
 
-**Success Response (201):**
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "b3f9c1e2-7d4a-4c91-9c2a-1f0a8e5b6d12",
-    "name": "ella",
-    "gender": "female",
-    "gender_probability": 0.99,
-    "sample_size": 1234,
-    "age": 46,
-    "age_group": "adult",
-    "country_id": "CD",
-    "country_probability": 0.85,
-    "created_at": "2026-04-01T12:00:00Z"
-  }
-}
-```
-
-### 2. Get Profile by ID
-**GET** `/api/profiles/{id}/`
-
-**Success Response (200):**
-```json
+// Response
 {
   "status": "success",
-  "data": {
-    "id": "b3f9c1e2-7d4a-4c91-9c2a-1f0a8e5b6d12",
-    "name": "emmanuel",
-    "gender": "male",
-    "gender_probability": 0.99,
-    "sample_size": 1234,
-    "age": 25,
-    "age_group": "adult",
-    "country_id": "NG",
-    "country_probability": 0.85,
-    "created_at": "2026-04-01T12:00:00Z"
-  }
+  "access_token": "string",
+  "refresh_token": "string"
 }
 ```
 
-### 3. List Profiles
-**GET** `/api/profiles/`
+#### POST /auth/logout
+```json
+// Request
+{ "refresh_token": "string" }
 
-**Optional Query Parameters:**
-- **String Filters:** `gender`, `country_id`, `age_group`
-- **Numeric Filters:** `min_age`, `max_age`, `min_gender_probability`, `min_country_probability`
-- **Sorting:** `sort_by` (`age`, `created_at`, `gender_probability`), `order` (`asc`, `desc`)
-- **Pagination:** `page` (default: 1), `limit` (max: 50)
+// Response
+{ "status": "success", "message": "Logged out" }
+```
 
-**Example:** `/api/profiles/?gender=male&min_age=25&sort_by=age&order=desc`
+---
 
-**Success Response (200):**
+### Profile Endpoints
+All profile endpoints require:
+- `Authorization: Bearer <access_token>` header
+- `X-API-Version: 1` header
+
+Requests missing `X-API-Version` return:
+```json
+{ "status": "error", "message": "API version header required" }
+```
+Status: `400 Bad Request`
+
+| Method | Endpoint | Role Required |
+|--------|----------|--------------|
+| GET | `/api/profiles` | analyst, admin |
+| POST | `/api/profiles` | admin |
+| GET | `/api/profiles/<id>` | analyst, admin |
+| DELETE | `/api/profiles/<id>` | admin |
+| GET | `/api/profiles/search?q=` | analyst, admin |
+| GET | `/api/profiles/export?format=csv` | analyst, admin |
+
+#### GET /api/profiles — Paginated Response
 ```json
 {
   "status": "success",
   "page": 1,
   "limit": 10,
-  "total": 452,
-  "data": [
-    {
-      "id": "id-1",
-      "name": "emmanuel",
-      "gender": "male",
-      "age": 25,
-      "age_group": "adult",
-      "country_id": "NG"
-    }
-  ]
+  "total": 2026,
+  "total_pages": 203,
+  "links": {
+    "self": "/api/profiles?page=1&limit=10",
+    "next": "/api/profiles?page=2&limit=10",
+    "prev": null
+  },
+  "data": [ ... ]
 }
 ```
 
-### 4. Search Profiles (Natural Language)
-**GET** `/api/profiles/search`
+Supports filters: `?gender=male&country=NG&age_group=adult&min_age=20&max_age=40`
+Supports sorting: `?sort_by=age&order=desc`
 
-**Query Parameters:**
-- `q` (Required) - Plain text search query.
+#### POST /api/profiles
+```json
+// Request
+{ "name": "Harriet Tubman" }
 
-**Example:** `/api/profiles/search?q=young males from nigeria`
+// Response
+{
+  "status": "success",
+  "data": {
+    "id": "uuid",
+    "name": "harriet tubman",
+    "gender": "female",
+    "gender_probability": 0.97,
+    "age": 28,
+    "age_group": "adult",
+    "country_id": "US",
+    "country_name": "United States",
+    "country_probability": 0.89,
+    "created_at": "2024-01-01T00:00:00Z"
+  }
+}
+```
 
-**Success Response (200):** Returns the same paginated structure as the List endpoint.
-
-### 5. Delete Profile
-**DELETE** `/api/profiles/{id}/`
-
-**Success Response:** `204 No Content`
+#### GET /api/profiles/export?format=csv
+Returns a CSV file download.
+- Content-Type: `text/csv`
+- Columns: `id, name, gender, gender_probability, age, age_group, country_id, country_name, country_probability, created_at`
+- Supports same filters as GET /api/profiles
 
 ---
 
-## Natural Language Query (NLQ)
+## Role Enforcement Logic
 
-This API features a custom-built, rule-based Lexical Parser that translates plain English strings into precise database lookups.
-the NLP logic is separated from the API routing. `views.py`  extracts the query parameter and passes it to `services.py` file.
+Enforced via two layers that work together:
 
-**2. The Rule-Based Lexical Parser**
-To meet constraints without relying on external LLMs, the parser uses Python's `re` (Regex) module. It scans the lowercase string for specific keyword boundaries (`\b`) and maps them to Django ORM lookups.
-- **Demographics:** Translates keywords like "teenager" or "senior" directly into `age_group` filters.
-- **Numeric Thresholds:** Captures phrases like "above 30" or "below 18" and dynamically converts them to `age__gt` or `age__lt` database queries.
-- **Custom Mapping:** Hardcodes the project-specific definition of "young" to dynamically apply an `age__gte=16` and `age__lte=24` filter.
+**Layer 1 — `JWTAuthMiddleware`** runs on every request:
+- Reads `Authorization: Bearer <token>` header
+- Decodes JWT, fetches user from DB
+- Attaches user to `request.auth_user`
+- Sets `request.auth_user = None` on any failure
 
-**3. Edge Case Handling**
-- **Contradictory Logic:** If the parser detects *both* "male" and "female" in the same query (e.g., "male and female teenagers"), it deliberately sets `matched = True` but ignores applying any gender filter, allowing the database to accurately return both.
-- **Case-Insensitive Geography:** Regex extractions for countries (e.g., extracting "nigeria" from "from nigeria") are passed to a Django `__iexact` lookup to safely cross-reference capitalized database entries.
+**Layer 2 — RBAC decorators** on each view:
+```python
+@method_decorator(require_analyst_or_admin, name="get")   # read
+@method_decorator(require_admin, name="post")              # write
+class ProfileListCreateView(APIView):
+    ...
+```
+
+Available decorators:
+- `require_auth` — any authenticated user
+- `require_role("admin", "analyst")` — specific roles
+- `require_admin` — admin only (alias)
+- `require_analyst_or_admin` — both roles (alias)
+
+Response codes:
+- `401` — no token or invalid token
+- `403` — authenticated but wrong role or inactive account
+
+---
+
+## Natural Language Search
+
+Endpoint: `GET /api/profiles/search?q=young males from nigeria`
+
+Queries are parsed into structured DB filters using keyword matching:
+
+| Query Keywords | Maps To |
+|----------------|---------|
+| young, adult | `age_group=adult` |
+| child, teenager, senior | `age_group=<value>` |
+| male, males, man, men | `gender=male` |
+| female, females, woman, women | `gender=female` |
+| from nigeria, nigerian | `country_id=NG` |
+| from usa, american | `country_id=US` |
+
+Example:
+```
+"young females from the US" → { gender: female, age_group: adult, country_id: US }
+```
+
+---
+
+## CLI Usage
+
+### Installation
+```bash
+git clone https://github.com/abdulrahmontim/profile-intelligence-cli
+cd profile-intelligence-cli
+pip install -e .
+```
+
+After installation, `insighta` works from any directory.
+
+### Auth Commands
+```bash
+insighta login       # opens GitHub OAuth in browser
+insighta logout      # invalidates tokens
+insighta whoami      # shows current user
+```
+
+### Profile Commands
+```bash
+# List profiles
+insighta profiles list
+insighta profiles list --gender male
+insighta profiles list --country NG --age-group adult
+insighta profiles list --min-age 25 --max-age 40
+insighta profiles list --sort-by age --order desc
+insighta profiles list --page 2 --limit 20
+
+# Get single profile
+insighta profiles get <id>
+
+# Search
+insighta profiles search "young males from nigeria"
+
+# Create (admin only)
+insighta profiles create --name "Harriet Tubman"
+
+# Export
+insighta profiles export --format csv
+insighta profiles export --format csv --gender male --country NG
+```
+
+### Token Handling
+- Tokens stored at `~/.insighta/credentials.json`
+- Every request sends `Authorization: Bearer <access_token>`
+- On `401` response → auto-refresh attempted using refresh token
+- If refresh fails → user prompted to run `insighta login` again
+
+---
+
+## Local Setup
+
+### Requirements
+- Python 3.12+
+- PostgreSQL (or SQLite for local dev)
+
+### Steps
+```bash
+git clone https://github.com/abdulrahmontim/profile-intelligence-api
+cd profile-intelligence-api
+
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+
+pip install -r requirements.txt
+
+python manage.py migrate
+python manage.py seed_profiles
+python manage.py runserver
+```
+
+### Environment Variables
+Create a `.env` file in the project root:
+```bash
+SECRET_KEY=your-django-secret-key
+DEBUG=True
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
+GITHUB_REDIRECT_URI=http://127.0.0.1:8000/auth/github/callback
+JWT_SECRET=your-jwt-secret
+DATABASE_URL=sqlite:///db.sqlite3
+ALLOWED_HOSTS=localhost,127.0.0.1
+```
+
+---
+
+## Deployment
+
+- Backend hosted on **Railway**
+- PostgreSQL database hosted on **Railway**
+- Auto-deploys on push to `main`
+
+### Railway Commands
+**Pre-deploy:**
+```
+python manage.py migrate && python manage.py seed_profiles
+```
+
+**Start:**
+```
+gunicorn profile_intelligence.wsgi:application --bind 0.0.0.0:$PORT
+```
+
+---
+
+## Rate Limiting
+
+| Scope | Limit |
+|-------|-------|
+| `/auth/*` endpoints | 10 requests / minute |
+| `/api/*` endpoints | 60 requests / minute per user |
+
+Returns `429 Too Many Requests` when exceeded.
+
+---
+
+## CI/CD
+
+GitHub Actions runs on every PR to `main`:
+- Linting with `flake8`
+- Django migrations check
+- Test suite
+
+See `.github/workflows/ci.yml` for full configuration.
+
+---
+
+## Error Response Format
+
+All errors follow this structure:
+```json
+{
+  "status": "error",
+  "message": "Human readable message"
+}
+```
+
+---
+
+## Live URLs
+
+- **Backend API:** https://profile-intelligence-api-production.up.railway.app
+- **Web Portal:** https://profile-intelligence-web.up.railway.app
