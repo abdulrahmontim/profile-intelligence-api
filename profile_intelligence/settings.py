@@ -88,6 +88,8 @@ DATABASES = {
 
 AUTH_USER_MODEL = "users.User"
 JWT_SECRET = os.environ["JWT_SECRET"]
+GITHUB_CLIENT_ID = os.environ["GITHUB_CLIENT_ID"]
+GITHUB_REDIRECT_URI = os.environ["GITHUB_REDIRECT_URI"]
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
