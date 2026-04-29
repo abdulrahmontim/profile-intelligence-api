@@ -415,5 +415,5 @@ All errors follow this structure:
 
 ## Live URLs
 
-- **Backend API:** https://profile-intelligence-api-production.up.railway.app
+- **Backend API:** https://profile-intelligence-api.up.railway.app
 - **Web Portal:** https://profile-intelligence-web.up.railway.app
