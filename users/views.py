@@ -102,8 +102,8 @@ class GithubCLICallbackView(APIView):
         token_res = httpx.post(
             "https://github.com/login/oauth/access_token",
             json={
-                "client_id": settings.GITHUB_CLIENT_ID,
-                "client_secret": settings.GITHUB_CLIENT_SECRET,
+                "client_id": settings.GITHUB_CLI_CLIENT_ID,
+                "client_secret": settings.GITHUB_CLI_CLIENT_SECRET,
                 "code": code,
                 "code_verifier": code_verifier,
                 "redirect_uri": redirect_uri,
