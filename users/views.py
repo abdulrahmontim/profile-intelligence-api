@@ -2,7 +2,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.conf import settings
-from .models import User
+from django.utils import timezone
+from .models import User, RefreshToken
 from django.shortcuts import redirect
 from urllib.parse import urlencode
 from .pkce import generate_code_challenge, generate_code_verifier, generate_state
@@ -88,10 +89,54 @@ class GithubCallbackView(APIView):
 class GithubRefreshView(APIView):
     
     def post(self, request):
-        ...
-        
+        refresh_token = request.data.get("refresh_token")
+        if not refresh_token:
+            return Response({
+                "status": "error",
+                "message": "refresh token is required"
+            })
+        try:
+            ref_token = RefreshToken.objects.get(token=refresh_token, valid=True)
+        except RefreshToken.DoesNotExist:
+            return Response({
+                "status": "error", 
+                "message": "invalid token"
+            })
+            
+        if ref_token.expires_at < timezone.now():
+            ref_token.valid = False
+            ref_token.save()
+            return Response({
+                "status": "error",
+                "message": "Refresh token expired"
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
+        ref_token.valid = False
+        ref_token.save()
+
+        tokens = issue_token_pair(ref_token.user)
+        return Response({"status": "success", **tokens})
+
+
 
 class GithubLogoutView(APIView):
     
     def post(self, request):
-        ...
+        refresh_token = request.data.get("refresh_token")
+        
+        try:
+            ref_token = RefreshToken.objects.get(token=refresh_token, valid=True)
+            
+        except RefreshToken.DoesNotExist:
+            return Response({
+                "status": "error",
+                "message": "invalid token"
+            })
+        
+        ref_token.valid = False
+        ref_token.save()
+        
+        return Response({
+            "status": "success", 
+            "message": "logged out"
+        })
