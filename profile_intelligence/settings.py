@@ -14,6 +14,10 @@ from pathlib import Path
 import os
 import dj_database_url
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -89,6 +93,7 @@ DATABASES = {
 AUTH_USER_MODEL = "users.User"
 JWT_SECRET = os.environ["JWT_SECRET"]
 GITHUB_CLIENT_ID = os.environ["GITHUB_CLIENT_ID"]
+GITHUB_CLIENT_SECRET=os.environ["GITHUB_CLIENT_SECRET"]
 GITHUB_REDIRECT_URI = os.environ["GITHUB_REDIRECT_URI"]
 
 # Password validation

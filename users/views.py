@@ -7,7 +7,7 @@ from .models import User, RefreshToken
 from django.shortcuts import redirect
 from urllib.parse import urlencode
 from .pkce import generate_code_challenge, generate_code_verifier, generate_state
-from .tokens import issue_token_pair, issue_refresh_token, issue_access_token
+from .tokens import issue_token_pair
 import httpx
 
 
