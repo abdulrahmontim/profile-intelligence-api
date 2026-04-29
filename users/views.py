@@ -77,6 +77,9 @@ class GithubCallbackView(APIView):
                 "avatar_url": github_user.get("avatar_url") or "",
             }
         )
+        user.last_login_at = timezone.now()
+        user.save(update_fields=["last_login_at"])
+        
         tokens = issue_token_pair(user)
         
         return Response({
