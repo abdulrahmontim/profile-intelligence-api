@@ -26,7 +26,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# Pulls from environment in production, uses the hardcoded string locally
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-l1)hy2+=2#544k3uxb$5f%r9ml2px)9r*@o24^u2b3a_c1c93y')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
@@ -100,6 +99,11 @@ GITHUB_REDIRECT_URI = os.environ["GITHUB_REDIRECT_URI"]
 GITHUB_CLI_CLIENT_ID = os.environ["GITHUB_CLI_CLIENT_ID"]
 GITHUB_CLI_CLIENT_SECRET = os.environ["GITHUB_CLI_CLIENT_SECRET"]
 
+
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_HTTPONLY = True
+
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
@@ -145,6 +149,18 @@ STATIC_URL = 'static/'
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+RATELIMIT_VIEW = "users.views.ratelimit_error"
+
 CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "authorization",
+    "content-type",
+    "x-api-version",
+    "x-csrftoken",
+]
 
 APPEND_SLASH = False
