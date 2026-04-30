@@ -5,6 +5,7 @@ from django.http import HttpResponseRedirect
 from django.conf import settings
 from django.utils import timezone
 from .models import User, RefreshToken
+from users.permissions import require_auth
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
 from django.shortcuts import redirect
@@ -234,4 +235,23 @@ class GithubLogoutView(APIView):
         return Response({
             "status": "success", 
             "message": "logged out"
+        })
+
+
+@method_decorator(require_auth, name="get")
+class MeView(APIView):
+    def get(self, request):
+        user = request.auth_user
+        return Response({
+            "status": "success",
+            "data": {
+                "id": str(user.id),
+                "username": user.username,
+                "email": user.email,
+                "avatar_url": user.avatar_url,
+                "role": user.role,
+                "is_active": user.is_active,
+                "last_login_at": str(user.last_login_at),
+                "created_at": str(user.created_at),
+            }
         })
