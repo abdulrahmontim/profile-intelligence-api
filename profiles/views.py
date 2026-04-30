@@ -192,7 +192,7 @@ class ProfileSearchView(APIView):
         
         paginator = ProfilePagination()
         paginated_profiles = paginator.paginate_queryset(profiles, request)
-        serializer = ProfileListSerializer(paginated_profiles, many=True)
+        serializer = ProfileSerializer(paginated_profiles, many=True)
         
         return paginator.get_paginated_response(serializer.data)
     
