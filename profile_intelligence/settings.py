@@ -153,11 +153,14 @@ RATELIMIT_VIEW = "users.views.ratelimit_error"
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-CORS_ALLOWED_ORIGINS = [
-    "https://profile-intelligence-web.up.railway.app"
-]
-
 CORS_ALLOW_CREDENTIALS = True
 
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "authorization",
+    "content-type",
+    "x-api-version",
+    "x-csrftoken",
+]
 
 APPEND_SLASH = False
