@@ -149,6 +149,15 @@ STATIC_URL = 'static/'
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+RATELIMIT_VIEW = "users.views.ratelimit_error"
+
 CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOWED_ORIGINS = [
+    "https://profile-intelligence-web.up.railway.app"
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
 
 APPEND_SLASH = False

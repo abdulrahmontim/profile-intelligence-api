@@ -5,6 +5,8 @@ from django.http import HttpResponseRedirect
 from django.conf import settings
 from django.utils import timezone
 from .models import User, RefreshToken
+from django_ratelimit.decorators import ratelimit
+from django.utils.decorators import method_decorator
 from django.shortcuts import redirect
 from urllib.parse import urlencode
 from .pkce import generate_code_challenge, generate_code_verifier, generate_state
@@ -12,6 +14,14 @@ from .tokens import issue_token_pair
 import httpx
 
 
+def ratelimit_error(request, exception):
+    from django.http import JsonResponse
+    return JsonResponse({
+        "status": "error",
+        "message": "Too many requests. Try again later."
+    }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+@method_decorator(ratelimit(key="ip", rate="10/m", method="ALL", block=True), name="dispatch")
 class GithubLoginView(APIView):
     
     def get(self, request):
@@ -33,6 +43,8 @@ class GithubLoginView(APIView):
 
         return redirect(f"https://github.com/login/oauth/authorize?{urlencode(params)}")
 
+
+@method_decorator(ratelimit(key="ip", rate="10/m", method="ALL", block=True), name="dispatch")
 class GithubCallbackView(APIView):
     
     def get(self, request):
@@ -168,6 +180,7 @@ class GithubCLICallbackView(APIView):
         })
 
 
+@method_decorator(ratelimit(key="ip", rate="10/m", method="ALL", block=True), name="dispatch")
 class GithubRefreshView(APIView):
     
     def post(self, request):
@@ -200,7 +213,7 @@ class GithubRefreshView(APIView):
         return Response({"status": "success", **tokens})
 
 
-
+@method_decorator(ratelimit(key="ip", rate="10/m", method="ALL", block=True), name="dispatch")
 class GithubLogoutView(APIView):
     
     def post(self, request):
