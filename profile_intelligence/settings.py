@@ -79,6 +79,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'profile_intelligence.wsgi.application'
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
+
+CORS_URLS_REGEX = r"^.*$"
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -101,8 +108,10 @@ GITHUB_CLI_CLIENT_SECRET = os.environ["GITHUB_CLI_CLIENT_SECRET"]
 
 
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_HTTPONLY = True
+
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = "Lax"
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
