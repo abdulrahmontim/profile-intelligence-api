@@ -40,7 +40,7 @@ class GithubCallbackView(APIView):
         state = request.GET.get("state")
         code_verifier = request.session.get("code_verifier")
         
-        if not state or state != request.session.get("oauth_state"):
+        if not state or state != request.session.get("oauth_state") or state != request.session.get("oauth_state"):
             return Response({
                 "status": "error",
                 "message": "state mismatch"
