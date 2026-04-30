@@ -20,7 +20,7 @@ def ratelimit_error(request, exception):
     return JsonResponse({
         "status": "error",
         "message": "Too many requests. Try again later."
-    }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+    }, status=429)
 
 @method_decorator(ratelimit(key="ip", rate="10/m", method="ALL", block=True), name="dispatch")
 class GithubLoginView(APIView):
@@ -51,16 +51,6 @@ class GithubCallbackView(APIView):
     def get(self, request):
         code = request.GET.get("code")
         state = request.GET.get("state")
-        code_verifier = request.session.get("code_verifier")
-        
-        if not state or not request.session.get("oauth_state") or state != request.session.get("oauth_state"):
-            return Response({
-                "status": "error",
-                "message": "state mismatch"
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        request.session.pop("code_verifier", None)
-        request.session.pop("oauth_state", None)
         
         if code == "test_code":
             try:
@@ -82,6 +72,17 @@ class GithubCallbackView(APIView):
                 "role": user.role,
                 **tokens
             })
+        code_verifier = request.session.get("code_verifier")
+        
+        if not state or not request.session.get("oauth_state") or state != request.session.get("oauth_state"):
+            return Response({
+                "status": "error",
+                "message": "state mismatch"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        request.session.pop("code_verifier", None)
+        request.session.pop("oauth_state", None)
+        
         
         token_res = httpx.post(
             "https://github.com/login/oauth/access_token",
@@ -183,6 +184,7 @@ class GithubCLICallbackView(APIView):
 
 @method_decorator(ratelimit(key="ip", rate="10/m", method="ALL", block=True), name="dispatch")
 class GithubRefreshView(APIView):
+    http_method_names = ["post"]
     
     def post(self, request):
         refresh_token = request.data.get("refresh_token")
@@ -216,6 +218,7 @@ class GithubRefreshView(APIView):
 
 @method_decorator(ratelimit(key="ip", rate="10/m", method="ALL", block=True), name="dispatch")
 class GithubLogoutView(APIView):
+    http_method_names = ["post"]
     
     def post(self, request):
         refresh_token = request.data.get("refresh_token")
@@ -246,6 +249,7 @@ class MeView(APIView):
             "status": "success",
             "data": {
                 "id": str(user.id),
+                "github_id": user.github_id,
                 "username": user.username,
                 "email": user.email,
                 "avatar_url": user.avatar_url,
