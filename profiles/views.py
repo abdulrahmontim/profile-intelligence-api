@@ -121,11 +121,11 @@ class ProfileListCreateView(APIView):
         paginated_profiles = paginator.paginate_queryset(profiles, request)
         
         if paginated_profiles is not None:
-            serializer = ProfileListSerializer(paginated_profiles, many=True)
+            serializer = ProfileSerializer(paginated_profiles, many=True)
             
             return paginator.get_paginated_response(serializer.data)
         
-        serializer = ProfileListSerializer(profiles, many=True)
+        serializer = ProfileSerializer(profiles, many=True)
         return Response(serializer.data)
 
 @method_decorator(require_analyst_or_admin, name="get")
