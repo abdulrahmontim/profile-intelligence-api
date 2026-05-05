@@ -26,6 +26,17 @@ class Profile(models.Model):
     country_probability = models.FloatField()
     created_at = models.DateTimeField(auto_now_add=True)
     
+    class Meta:
+        indexes = [
+            models.Index(fields=["gender"]),
+            models.Index(fields=["country_id"]),
+            models.Index(fields=["age"]),
+            models.Index(fields=["age_group"]),
+            models.Index(fields=["gender", "country_id"]),
+            models.Index(fields=["gender", "age_group"]),
+            models.Index(fields=["country_id", "age_group"]),
+        ]
+    
     def __str__(self):
         return self.name
     

@@ -259,3 +259,4 @@ class MeView(APIView):
                 "created_at": str(user.created_at),
             }
         })
+

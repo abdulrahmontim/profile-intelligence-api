@@ -1,0 +1,17 @@
+name,gender,age,age_group,country_id,country_name,gender_probability,country_probability
+emma johnson,female,28,adult,US,United States,0.97,0.85
+liam chen,male,34,adult,NG,Nigeria,0.92,0.78
+sofia martinez,female,16,teenager,GB,United Kingdom,0.96,0.88
+noah williams,male,8,child,CA,Canada,0.91,0.83
+olivia brown,female,65,senior,DE,Germany,0.98,0.79
+james wilson,male,42,adult,GH,Ghana,0.89,0.91
+ava thompson,female,19,teenager,ZA,South Africa,0.94,0.76
+william davis,male,72,senior,KE,Kenya,0.87,0.82
+isabella moore,female,11,child,US,United States,0.96,0.77
+lucas anderson,male,31,adult,NG,Nigeria,0.93,0.88
+,female,25,adult,NG,Nigeria,0.95,0.76
+bad row,,-1,adult,NG,Nigeria,0.95,0.76
+emma johnson,female,28,adult,US,United States,0.97,0.85
+james wilson,male,notanumber,adult,GH,Ghana,0.89,0.91
+random person,unknown,30,adult,NG,Nigeria,0.95,0.76
+oliver king,male,25,unknown_group,NG,Nigeria,0.95,0.76
