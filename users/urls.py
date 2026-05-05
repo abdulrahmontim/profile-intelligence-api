@@ -10,7 +10,3 @@ urlpatterns = [
     path("logout", views.GithubLogoutView.as_view(), name="logout")    
 ]
 
-if settings.DEBUG:
-    from users.views import DevTokenView
-    urlpatterns += [path("dev/token/", DevTokenView.as_view())]
-    path("dev/token/", DevTokenView.as_view(), name="dev-token")

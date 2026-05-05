@@ -15,7 +15,10 @@ from .services.profile_filter import get_profile_filter
 from .services.parse_query import get_parse_query
 from .services.profile_csv import generate_profile_csv
 from .services.filter_normalizer import normalize_filters, normalize_search_filters, make_cache_key
+from .services.profile_importer import process_csv as run_csv_ingestion
 import requests
+import io
+import threading
 from pycountry import countries
 
 
@@ -251,7 +254,35 @@ class ProfileExportView(View):
             
 
 
-class ProfileImportView(View):
+@method_decorator(require_admin, name="post")
+class ProfileImportView(APIView):
+
+    permission_classes = [ReqAPIVersionHeader]
+
     def post(self, request):
-        ...
+        file = request.FILES.get("file")
+
+        if not file:
+            return Response({
+                "status": "error",
+                "message": "No file provided"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not file.name.endswith(".csv"):
+            return Response({
+                "status": "error",
+                "message": "Only CSV files are supported"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            result = run_csv_ingestion(file)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception:
+            return Response({
+                "status": "error",
+                "message": "Could not process file"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            
+
 
