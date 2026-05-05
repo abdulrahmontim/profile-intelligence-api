@@ -107,8 +107,9 @@ class ProfileListCreateView(APIView):
                 country_probability=top_country['probability']
             )
             
-            cache.delete_pattern("profiles:list:*")
-            cache.delete_pattern("profiles:search:*")
+            # cache.delete_pattern("profiles:list:*")
+            # cache.delete_pattern("profiles:search:*")
+            cache.clear()
             
             serializer = ProfileSerializer(profile)
             return Response({
@@ -178,8 +179,9 @@ class ProfileDetailView(APIView):
         
         profile.delete()
         
-        cache.delete_pattern("profiles:list:*")
-        cache.delete_pattern("profiles:search:*")
+        # cache.delete_pattern("profiles:list:*")
+        # cache.delete_pattern("profiles:search:*")
+        cache.clear()
         
         return Response(status=status.HTTP_204_NO_CONTENT)
 
