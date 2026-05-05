@@ -4,6 +4,7 @@ from rest_framework import status
 from django.views import View
 from django.http import JsonResponse
 from django.core.exceptions import ValidationError
+from django.core.cache import cache
 from django.utils.decorators import method_decorator
 from users.permissions import require_admin, require_analyst_or_admin
 from .models import Profile
@@ -13,6 +14,7 @@ from .permissions import ReqAPIVersionHeader
 from .services.profile_filter import get_profile_filter
 from .services.parse_query import get_parse_query
 from .services.profile_csv import generate_profile_csv
+from .services.filter_normalizer import normalize_filters, normalize_search_filters, make_cache_key
 import requests
 from pycountry import countries
 
@@ -102,6 +104,9 @@ class ProfileListCreateView(APIView):
                 country_probability=top_country['probability']
             )
             
+            cache.delete_pattern("profiles:list:*")
+            cache.delete_pattern("profiles:search:*")
+            
             serializer = ProfileSerializer(profile)
             return Response({
                 "status": "success",
@@ -115,6 +120,14 @@ class ProfileListCreateView(APIView):
     
     
     def get(self, request):
+        
+        cleaned = normalize_filters(request.GET.dict())
+        cache_key = make_cache_key("profiles:list", cleaned)
+        
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+        
         profiles = get_profile_filter(request)
         
         paginator = ProfilePagination()
@@ -122,8 +135,9 @@ class ProfileListCreateView(APIView):
         
         if paginated_profiles is not None:
             serializer = ProfileSerializer(paginated_profiles, many=True)
-            
-            return paginator.get_paginated_response(serializer.data)
+            res =  paginator.get_paginated_response(serializer.data)
+            cache.set(cache_key, res.data, timeout=300)
+            return res
         
         serializer = ProfileSerializer(profiles, many=True)
         return Response(serializer.data)
@@ -161,6 +175,9 @@ class ProfileDetailView(APIView):
         
         profile.delete()
         
+        cache.delete_pattern("profiles:list:*")
+        cache.delete_pattern("profiles:search:*")
+        
         return Response(status=status.HTTP_204_NO_CONTENT)
 
  
@@ -188,15 +205,22 @@ class ProfileSearchView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST
             )
         
+        cleaned = normalize_search_filters(filters)
+        cache_key = make_cache_key("profile:search", cleaned)
+        
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+        
         profiles = Profile.objects.filter(**filters)
         
         paginator = ProfilePagination()
         paginated_profiles = paginator.paginate_queryset(profiles, request)
         serializer = ProfileSerializer(paginated_profiles, many=True)
-        
-        return paginator.get_paginated_response(serializer.data)
+        res_data = paginator.get_paginated_response(serializer.data).data
     
-
+        cache.set(cache_key, res_data, timeout=300)
+        return Response(res_data)
 @method_decorator(require_analyst_or_admin, name="get")
 class ProfileExportView(View):
 
