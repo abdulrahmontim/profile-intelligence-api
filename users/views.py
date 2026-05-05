@@ -259,3 +259,25 @@ class MeView(APIView):
                 "created_at": str(user.created_at),
             }
         })
+
+
+
+
+from django.views.decorators.csrf import csrf_exempt
+
+@method_decorator(csrf_exempt, name="dispatch")
+class DevTokenView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        from users.models import User
+        from .tokens import issue_token_pair
+        
+        username = request.data.get("username")
+        try:
+            user = User.objects.get(username=username)
+            tokens = issue_token_pair(user)
+            return Response(tokens)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)

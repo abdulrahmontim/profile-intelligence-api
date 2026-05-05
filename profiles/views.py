@@ -225,3 +225,9 @@ class ProfileExportView(View):
 
         return generate_profile_csv(profiles)
             
+
+
+class ProfileImportView(View):
+    def post(self, request):
+        ...
+
