@@ -118,7 +118,12 @@ class GithubCallbackView(APIView):
         
         tokens = issue_token_pair(user)
 
-        return redirect(f"{WEB_PORTAL_URL}/auth/callback?access_token={access_token}&refresh_token={refresh_token}&username={user.username}&role={user.role}")
+        access_token = tokens["access_token"]
+        refresh_token = tokens["refresh_token"]
+        
+        web_portal_url = settings.WEB_PORTAL_URL
+
+        return redirect(f"{web_portal_url}/auth/callback?access_token={access_token}&refresh_token={refresh_token}&username={user.username}&role={user.role}")
                 
 
 class GithubCLICallbackView(APIView):
