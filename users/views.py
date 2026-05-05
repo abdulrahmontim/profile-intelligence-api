@@ -117,14 +117,8 @@ class GithubCallbackView(APIView):
         user.save(update_fields=["last_login_at"])
         
         tokens = issue_token_pair(user)
-        
-        redirect_url = (
-            f"{settings.WEB_PORTAL_URL}/auth/callback"
-            f"?access_token={tokens['access_token']}"
-            f"&refresh_token={tokens['refresh_token']}"
-            f"&username={user.username}"
-        )
-        return HttpResponseRedirect(redirect_url)
+
+        return redirect(f"{WEB_PORTAL_URL}/auth/callback?access_token={access_token}&refresh_token={refresh_token}&username={user.username}&role={user.role}")
                 
 
 class GithubCLICallbackView(APIView):
