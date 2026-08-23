@@ -85,10 +85,13 @@ CACHES = {
         "LOCATION": os.environ.get("REDIS_URL", "redis://localhost:6379/0"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
         },
         "TIMEOUT": 300,
     }
 }
+
+DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
 
 CORS_URLS_REGEX = r"^.*$"
 
