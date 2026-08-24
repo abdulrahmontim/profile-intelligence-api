@@ -150,6 +150,37 @@ user.save()
 - Warm cache responses are 3–13x faster than unoptimized baseline
 - Search normalization shows the biggest gain — semantically identical queries
   now share the same cache entry instead of hitting the DB independently
+
+---
+
+## Load Test — CSV Ingestion & Query Performance
+
+Benchmarked locally (Django dev server, SQLite, Windows). Peak memory =
+server process RSS sampled every second during upload. Reproduce:
+`python scripts/benchmark_ingest.py --rows 500000 --out big.csv`
+
+### Ingestion
+
+| Scenario          | Rows    | File    | Wall   | Throughput | Peak mem | Inserted | Skipped  |
+|-------------------|---------|---------|--------|------------|----------|----------|----------|
+| Fresh insert      | 50,000  | 2.9 MB  | 19.3s  | 2,593/s    | 101 MB   | 50,000   | 0        |
+| Fresh insert      | 100,000 | 5.8 MB  | 43.1s  | 2,318/s    | 105 MB   | 100,000  | 0        |
+| Fresh insert      | 500,000 | 29.5 MB | 207.3s | 2,411/s    | 170 MB   | 500,000  | 0        |
+| Re-upload (dedup) | 500,000 | 29.5 MB | 29.5s  | 16,976/s   | 173 MB   | 0        | 500,000  |
+
+- Throughput stays flat (~2.4–2.6K rows/s) across a 10x size increase — chunked
+  bulk inserts prevent degradation
+- Peak memory grows sub-linearly: 10x data costs only 1.68x more RSS
+- Re-uploading an identical file creates **zero duplicates** (chunk-level name
+  checks + `bulk_create(ignore_conflicts=True)`) and runs 7x faster than inserts
+
+### Query latency at 500K rows
+
+| Endpoint                  | Cold  | Warm (Redis) | Speedup |
+|---------------------------|-------|--------------|---------|
+| GET /api/profiles?filters | 3.82s | 25 ms        | ~152x   |
+| GET /api/profiles/search  | 1.94s | 11 ms        | ~179x   |
+
 ---
 
 ## API Endpoints

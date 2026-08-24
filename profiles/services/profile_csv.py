@@ -9,12 +9,14 @@ CSV_HEADERS = [
     "country_probability", "created_at",
 ]
 
+
 class Echo:
     def write(self, value):
         return value
 
+
 def generate_profile_csv(profiles):
-    writer    = csv.writer(Echo())
+    writer = csv.writer(Echo())
     timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
 
     def row_generator():

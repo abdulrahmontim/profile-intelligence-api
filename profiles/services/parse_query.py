@@ -5,13 +5,13 @@ def get_parse_query(query):
     query = query.lower().strip()
     if not query:
         raise ValueError()
-    
+
     filters = {}
     matched = False
-    
+
     has_male = bool(re.search(r"\b(male|males)\b", query))
     has_female = bool(re.search(r"\b(female|females)\b", query))
-    
+
     if has_male and not has_female:
         filters["gender"] = "male"
         matched = True
@@ -20,7 +20,7 @@ def get_parse_query(query):
         matched = True
     elif has_male and has_female:
         matched = True
-    
+
     if re.search(r"\b(teenager|teenagers)\b", query):
         filters["age_group"] = "teenager"
         matched = True
@@ -33,12 +33,12 @@ def get_parse_query(query):
     if re.search(r"\b(senior|seniors)\b", query):
         filters["age_group"] = "senior"
         matched = True
-    
+
     if re.search(r"\byoung\b", query):
         filters["age__gte"] = 16
         filters["age__lte"] = 24
         matched = True
-    
+
     above_match = re.search(r"above (\d+)", query)
     if above_match:
         filters["age__gt"] = int(above_match.group(1))
@@ -55,8 +55,7 @@ def get_parse_query(query):
         filters["country_name__iexact"] = country
         matched = True
 
-
     if not matched:
         raise ValueError("Unable to intepret query")
-    
+
     return filters

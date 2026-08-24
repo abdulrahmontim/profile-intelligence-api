@@ -1,7 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.http import HttpResponseRedirect
 from django.conf import settings
 from django.utils import timezone
 from .models import User, RefreshToken
@@ -22,17 +21,18 @@ def ratelimit_error(request, exception):
         "message": "Too many requests. Try again later."
     }, status=429)
 
+
 @method_decorator(ratelimit(key="ip", rate="10/m", method="ALL", block=True), name="dispatch")
 class GithubLoginView(APIView):
-    
+
     def get(self, request):
         code_verifier = generate_code_verifier()
         code_challenge = generate_code_challenge(code_verifier)
         state = generate_state()
-        
+
         request.session["code_verifier"] = code_verifier
         request.session["oauth_state"] = state
-        
+
         params = {
             "client_id": settings.GITHUB_CLIENT_ID,
             "redirect_uri": settings.GITHUB_REDIRECT_URI,
@@ -47,12 +47,17 @@ class GithubLoginView(APIView):
 
 @method_decorator(ratelimit(key="ip", rate="10/m", method="ALL", block=True), name="dispatch")
 class GithubCallbackView(APIView):
-    
+
     def get(self, request):
         code = request.GET.get("code")
         state = request.GET.get("state")
-        
+
         if code == "test_code":
+            if not settings.DEBUG:
+                return Response(
+                    {"status": "error", "message": "Not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             try:
                 user = User.objects.get(username="admin_test_user")
             except User.DoesNotExist:
@@ -73,7 +78,7 @@ class GithubCallbackView(APIView):
                 **tokens
             })
         code_verifier = request.session.get("code_verifier")
-        
+
         if not state or not request.session.get("oauth_state") or state != request.session.get("oauth_state"):
             return Response({
                 "status": "error",
@@ -82,8 +87,7 @@ class GithubCallbackView(APIView):
 
         request.session.pop("code_verifier", None)
         request.session.pop("oauth_state", None)
-        
-        
+
         token_res = httpx.post(
             "https://github.com/login/oauth/access_token",
             json={
@@ -95,16 +99,16 @@ class GithubCallbackView(APIView):
             },
             headers={"Accept": "application/json"},
         )
-        
+
         github_token = token_res.json().get("access_token")
-        
+
         user_res = httpx.get(
             "https://api.github.com/user",
             headers={"Authorization": f"Bearer {github_token}"},
         )
-        
+
         github_user = user_res.json()
-        
+
         user, created = User.objects.update_or_create(
             github_id=str(github_user["id"]),
             defaults={
@@ -115,16 +119,19 @@ class GithubCallbackView(APIView):
         )
         user.last_login_at = timezone.now()
         user.save(update_fields=["last_login_at"])
-        
+
         tokens = issue_token_pair(user)
 
         access_token = tokens["access_token"]
         refresh_token = tokens["refresh_token"]
-        
+
         web_portal_url = settings.WEB_PORTAL_URL
 
-        return redirect(f"{web_portal_url}/auth/callback?access_token={access_token}&refresh_token={refresh_token}&username={user.username}&role={user.role}")
-                
+        return redirect(
+            f"{web_portal_url}/auth/callback?access_token={access_token}"
+            f"&refresh_token={refresh_token}&username={user.username}&role={user.role}"
+        )
+
 
 class GithubCLICallbackView(APIView):
 
@@ -184,7 +191,7 @@ class GithubCLICallbackView(APIView):
 @method_decorator(ratelimit(key="ip", rate="10/m", method="ALL", block=True), name="dispatch")
 class GithubRefreshView(APIView):
     http_method_names = ["post"]
-    
+
     def post(self, request):
         refresh_token = request.data.get("refresh_token")
         if not refresh_token:
@@ -196,17 +203,17 @@ class GithubRefreshView(APIView):
             ref_token = RefreshToken.objects.get(token=refresh_token, valid=True)
         except RefreshToken.DoesNotExist:
             return Response({
-                "status": "error", 
+                "status": "error",
                 "message": "invalid token"
             })
-            
+
         if ref_token.expires_at < timezone.now():
             ref_token.valid = False
             ref_token.save()
             return Response({
                 "status": "error",
                 "message": "Refresh token expired"
-                }, status=status.HTTP_401_UNAUTHORIZED)
+            }, status=status.HTTP_401_UNAUTHORIZED)
 
         ref_token.valid = False
         ref_token.save()
@@ -218,24 +225,24 @@ class GithubRefreshView(APIView):
 @method_decorator(ratelimit(key="ip", rate="10/m", method="ALL", block=True), name="dispatch")
 class GithubLogoutView(APIView):
     http_method_names = ["post"]
-    
+
     def post(self, request):
         refresh_token = request.data.get("refresh_token")
-        
+
         try:
             ref_token = RefreshToken.objects.get(token=refresh_token, valid=True)
-            
+
         except RefreshToken.DoesNotExist:
             return Response({
                 "status": "error",
                 "message": "invalid token"
             })
-        
+
         ref_token.valid = False
         ref_token.save()
-        
+
         return Response({
-            "status": "success", 
+            "status": "success",
             "message": "logged out"
         })
 
@@ -258,4 +265,3 @@ class MeView(APIView):
                 "created_at": str(user.created_at),
             }
         })
-

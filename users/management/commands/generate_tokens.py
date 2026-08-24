@@ -1,9 +1,11 @@
 import warnings
-warnings.filterwarnings("ignore")
 
 from django.core.management.base import BaseCommand
+
 from users.models import User
 from users.tokens import issue_token_pair
+
+warnings.filterwarnings("ignore")
 
 
 class Command(BaseCommand):

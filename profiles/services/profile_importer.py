@@ -51,6 +51,10 @@ def process_csv(file_buffer) -> dict:
     for row in reader:
         total_rows += 1
 
+        if total_rows % 50_000 == 0:
+            print(f"[import] processed {total_rows:,} rows, "
+                  f"inserted {inserted:,}, skipped {skipped:,}", flush=True)
+
         try:
             if not row or None in row.values():
                 skipped += 1

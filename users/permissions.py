@@ -2,7 +2,6 @@ from functools import wraps
 from django.http import JsonResponse
 
 
-
 def require_auth(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
@@ -18,8 +17,6 @@ def require_auth(view_func):
             )
         return view_func(request, *args, **kwargs)
     return wrapper
-
-
 
 
 def require_role(*roles):
