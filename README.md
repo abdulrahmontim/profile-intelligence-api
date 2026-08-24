@@ -308,7 +308,7 @@ Example:
 ```bash
 git clone https://github.com/abdulrahmontim/profile-intelligence-cli
 cd profile-intelligence-cli
-pip install -e .
+pip install -r requirements.txt
 ```
 
 After installation, `insighta` works from any directory.
