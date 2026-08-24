@@ -31,6 +31,8 @@ jobs:
       GITHUB_CLIENT_ID: test-client-id
       GITHUB_CLIENT_SECRET: test-client-secret
       GITHUB_REDIRECT_URI: http://localhost:8000/auth/github/callback
+      GITHUB_CLI_CLIENT_ID: test-cli-client-id
+      GITHUB_CLI_CLIENT_SECRET: test-cli-client-secret
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
       ALLOWED_HOSTS: localhost,127.0.0.1
 
