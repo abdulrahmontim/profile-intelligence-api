@@ -394,12 +394,12 @@ than writes. With 500K rows stored, Redis-cached list and search
 endpoints answer in 11–25 ms versus 1.9–3.8 s uncached (~150–180x),
 validating the query-normalization + MD5 cache-key strategy at scale.
 
-| Scenario          | Rows    | Wall   | Throughput | Peak RSS | Inserted | Skipped  |
-|-------------------|---------|--------|------------|----------|----------|----------|
-| Fresh insert      | 50,000  | 19.3s  | 2,593/s    | 101 MB   | 50,000   | 0        |
-| Fresh insert      | 100,000 | 43.1s  | 2,318/s    | 105 MB   | 100,000  | 0        |
-| Fresh insert      | 500,000 | 207.3s | 2,411/s    | 170 MB   | 500,000  | 0        |
-| Re-upload (dedup) | 500,000 | 29.5s  | 16,976/s   | 173 MB   | 0        | 500,000  |
+| Scenario          | Rows    | Ingest time | Speed    | Memory used | Inserted | Skipped  |
+|-------------------|---------|-------------|----------|-------------|----------|----------|
+| Fresh insert      | 50,000  | 19.3s       | 2,593/s  | 101 MB      | 50,000   | 0        |
+| Fresh insert      | 100,000 | 43.1s       | 2,318/s  | 105 MB      | 100,000  | 0        |
+| Fresh insert      | 500,000 | 207.3s      | 2,411/s  | 170 MB      | 500,000  | 0        |
+| Re-upload (dedup) | 500,000 | 29.5s       | 16,976/s | 173 MB      | 0        | 500,000  |
 
 | Endpoint                  | Cold  | Warm (Redis) | Speedup |
 |---------------------------|-------|--------------|---------|
