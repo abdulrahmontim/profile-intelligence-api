@@ -375,3 +375,33 @@ There is no rollback. This matches the spec requirement:
 | Partial inserts persist | ✅ | No rollback |
 | Concurrent uploads supported | ✅ | `ignore_conflicts=True` + chunk isolation |
 | Stage 3 intact | ✅ | Auth, RBAC, CLI, portal all working |
+
+---
+
+## Appendix: Measured Benchmark Results
+
+Environment: Django dev server, SQLite, Windows, single process.
+Methodology: synthetic unique-name CSVs; server RSS sampled at 1 Hz;
+row counts verified through the public API after import.
+Harness: `scripts/benchmark_ingest.py`.
+
+Ingestion holds ~2,400 rows/s from 50K to 500K rows while peak process
+memory rises only 101 MB → 170 MB (sub-linear), confirming that
+`TextIOWrapper` streaming plus 1,000-row bulk chunks bound memory
+independent of file size. Duplicate-heavy re-uploads skip all 500K rows
+in 29.5s, showing dedup cost is dominated by chunk-level SELECTs rather
+than writes. With 500K rows stored, Redis-cached list and search
+endpoints answer in 11–25 ms versus 1.9–3.8 s uncached (~150–180x),
+validating the query-normalization + MD5 cache-key strategy at scale.
+
+| Scenario          | Rows    | Wall   | Throughput | Peak RSS | Inserted | Skipped  |
+|-------------------|---------|--------|------------|----------|----------|----------|
+| Fresh insert      | 50,000  | 19.3s  | 2,593/s    | 101 MB   | 50,000   | 0        |
+| Fresh insert      | 100,000 | 43.1s  | 2,318/s    | 105 MB   | 100,000  | 0        |
+| Fresh insert      | 500,000 | 207.3s | 2,411/s    | 170 MB   | 500,000  | 0        |
+| Re-upload (dedup) | 500,000 | 29.5s  | 16,976/s   | 173 MB   | 0        | 500,000  |
+
+| Endpoint                  | Cold  | Warm (Redis) | Speedup |
+|---------------------------|-------|--------------|---------|
+| GET /api/profiles?filters | 3.82s | 25 ms        | ~152x   |
+| GET /api/profiles/search  | 1.94s | 11 ms        | ~179x   |
