@@ -53,6 +53,11 @@ class GithubCallbackView(APIView):
         state = request.GET.get("state")
 
         if code == "test_code":
+            if not settings.DEBUG:
+                return Response(
+                    {"status": "error", "message": "Not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             try:
                 user = User.objects.get(username="admin_test_user")
             except User.DoesNotExist:
