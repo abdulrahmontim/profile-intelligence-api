@@ -2,16 +2,15 @@ import json
 import hashlib
 
 
-
 def normalize_filters(params: dict):
     cleaned_filter = {}
-    
+
     if params.get("gender"):
         cleaned_filter["gender"] = params["gender"].lower().strip()
-        
+
     if params.get("country_id"):
         cleaned_filter["country_id"] = params["country_id"].upper().strip()
-        
+
     if params.get("age_group"):
         cleaned_filter["age_group"] = params["age_group"].lower().strip()
 
@@ -70,5 +69,3 @@ def make_cache_key(prefix: str, filters: dict):
     serialized = json.dumps(filters, sort_keys=True)
     hash_val = hashlib.md5(serialized.encode()).hexdigest()
     return f"{prefix}:{hash_val}"
-
-

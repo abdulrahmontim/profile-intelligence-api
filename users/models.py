@@ -12,13 +12,13 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser):
-    
+
     id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
     github_id = models.CharField(max_length=255, unique=True)
     username = models.CharField(max_length=255, unique=True)
     email = models.EmailField(blank=True)
     avatar_url = models.URLField(max_length=500, null=True, blank=True)
-    
+
     ROLE_CHOICES = [
         ("admin", "Admin"),
         ("analyst", "Analyst")
@@ -27,13 +27,12 @@ class User(AbstractBaseUser):
     is_active = models.BooleanField(default=True)
     last_login_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     objects = UserManager()
-    
+
     USERNAME_FIELD = "github_id"
     REQUIRED_FIELDS = []
-    
-    
+
     def __str__(self):
         return self.username
 

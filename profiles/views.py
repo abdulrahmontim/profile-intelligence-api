@@ -8,7 +8,7 @@ from django.core.cache import cache
 from django.utils.decorators import method_decorator
 from users.permissions import require_admin, require_analyst_or_admin
 from .models import Profile
-from .serializers import ProfileSerializer, ProfileListSerializer
+from .serializers import ProfileSerializer
 from .pagination import ProfilePagination
 from .permissions import ReqAPIVersionHeader
 from .services.profile_filter import get_profile_filter
@@ -17,27 +17,24 @@ from .services.profile_csv import generate_profile_csv
 from .services.filter_normalizer import normalize_filters, normalize_search_filters, make_cache_key
 from .services.profile_importer import process_csv as run_csv_ingestion
 import requests
-import io
-import threading
 from pycountry import countries
-
 
 
 @method_decorator(require_analyst_or_admin, name="get")
 @method_decorator(require_admin, name="post")
 class ProfileListCreateView(APIView):
-    
+
     permission_classes = [ReqAPIVersionHeader]
-    
+
     def post(self, request):
         name = request.data.get("name")
-        
+
         if not name:
             return Response({
                 "status": "error",
                 "message": "Missing or empty name"
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         if not isinstance(name, str):
             return Response({
                 "status": "error",
@@ -45,7 +42,7 @@ class ProfileListCreateView(APIView):
             }, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
         name = name.strip().lower()
-        
+
         existing_profile = Profile.objects.filter(name=name).first()
         if existing_profile:
             serializer = ProfileSerializer(existing_profile)
@@ -54,7 +51,7 @@ class ProfileListCreateView(APIView):
                 "message": "Profile already exists",
                 "data": serializer.data
             }, status=status.HTTP_200_OK)
-        
+
         try:
             gender_res = requests.get(f"https://api.genderize.io?name={name}", timeout=10).json()
             age_res = requests.get(f"https://api.agify.io?name={name}", timeout=10).json()
@@ -80,7 +77,7 @@ class ProfileListCreateView(APIView):
                 if country['probability'] > highest_prob:
                     highest_prob = country['probability']
                     top_country = country
-            
+
             age_group = None
             profile_age = age_res.get("age")
 
@@ -93,9 +90,9 @@ class ProfileListCreateView(APIView):
                     age_group = "adult"
                 elif profile_age >= 60:
                     age_group = "senior"
-            
+
             country_res = countries.get(alpha_2=top_country["country_id"])
-            
+
             profile = Profile.objects.create(
                 name=name,
                 gender=gender_res['gender'],
@@ -106,11 +103,11 @@ class ProfileListCreateView(APIView):
                 country_name=country_res.name if country_res else None,
                 country_probability=top_country['probability']
             )
-            
+
             # cache.delete_pattern("profiles:list:*")
             # cache.delete_pattern("profiles:search:*")
             cache.clear()
-            
+
             serializer = ProfileSerializer(profile)
             return Response({
                 "status": "success",
@@ -121,117 +118,119 @@ class ProfileListCreateView(APIView):
             return Response({"status": "error",
                              "message": "Could not reach external API."
                              }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    
+
     def get(self, request):
-        
+
         cleaned = normalize_filters(request.GET.dict())
         cache_key = make_cache_key("profiles:list", cleaned)
-        
+
         cached = cache.get(cache_key)
         if cached is not None:
             return Response(cached)
-        
+
         profiles = get_profile_filter(request)
-        
+
         paginator = ProfilePagination()
         paginated_profiles = paginator.paginate_queryset(profiles, request)
-        
+
         if paginated_profiles is not None:
             serializer = ProfileSerializer(paginated_profiles, many=True)
-            res =  paginator.get_paginated_response(serializer.data)
+            res = paginator.get_paginated_response(serializer.data)
             cache.set(cache_key, res.data, timeout=300)
             return res
-        
+
         serializer = ProfileSerializer(profiles, many=True)
         return Response(serializer.data)
+
 
 @method_decorator(require_analyst_or_admin, name="get")
 @method_decorator(require_admin, name="delete")
 class ProfileDetailView(APIView):
-    
+
     permission_classes = [ReqAPIVersionHeader]
-    
+
     def get(self, request, id):
         try:
             profile = Profile.objects.get(pk=id)
         except (Profile.DoesNotExist, ValidationError):
             return Response({
-            "status": "error",
-            "message": "Profile not found"
-        }, status=status.HTTP_404_NOT_FOUND)
-            
+                "status": "error",
+                "message": "Profile not found"
+            }, status=status.HTTP_404_NOT_FOUND)
+
         serializer = ProfileSerializer(profile)
-        
+
         return Response({
-            "status": "success", 
+            "status": "success",
             "data": serializer.data
         }, status=status.HTTP_200_OK)
-        
+
     def delete(self, request, id):
         try:
             profile = Profile.objects.get(pk=id)
         except (Profile.DoesNotExist, ValidationError):
             return Response({
-            "status": "error",
-            "message": "Profile not found"
-        }, status=status.HTTP_404_NOT_FOUND)
-        
+                "status": "error",
+                "message": "Profile not found"
+            }, status=status.HTTP_404_NOT_FOUND)
+
         profile.delete()
-        
+
         # cache.delete_pattern("profiles:list:*")
         # cache.delete_pattern("profiles:search:*")
         cache.clear()
-        
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
- 
+
 @method_decorator(require_analyst_or_admin, name="get")
 class ProfileSearchView(APIView):
-    
+
     permission_classes = [ReqAPIVersionHeader]
- 
+
     def get(self, request):
         query = request.query_params.get("q")
-        
+
         if not query:
             return Response({
                 "status": "error",
                 "message": "Invalid query parameters"
             }, status=status.HTTP_400_BAD_REQUEST)
-            
+
         try:
             filters = get_parse_query(query)
-            
+
         except ValueError:
             return Response({
                 "status": "error",
                 "message": "Unable to interpret query"
             }, status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         cleaned = normalize_search_filters(filters)
         cache_key = make_cache_key("profile:search", cleaned)
-        
+
         cached = cache.get(cache_key)
         if cached is not None:
             return Response(cached)
-        
+
         profiles = Profile.objects.filter(**filters)
-        
+
         paginator = ProfilePagination()
         paginated_profiles = paginator.paginate_queryset(profiles, request)
         serializer = ProfileSerializer(paginated_profiles, many=True)
         res_data = paginator.get_paginated_response(serializer.data).data
-    
+
         cache.set(cache_key, res_data, timeout=300)
         return Response(res_data)
+
+
 @method_decorator(require_analyst_or_admin, name="get")
 class ProfileExportView(View):
 
     def get(self, request):
         format = request.GET.get("format")
-        
+
         if request.headers.get("X-API-Version") != "1":
             return JsonResponse({
                 "status": "error",
@@ -253,7 +252,6 @@ class ProfileExportView(View):
             }, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
         return generate_profile_csv(profiles)
-            
 
 
 @method_decorator(require_admin, name="post")
@@ -284,7 +282,3 @@ class ProfileImportView(APIView):
                 "status": "error",
                 "message": "Could not process file"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
-            
-
-
