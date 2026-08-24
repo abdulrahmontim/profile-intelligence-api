@@ -8,27 +8,29 @@ Built for analysts, engineers, and internal stakeholders across CLI and web inte
 ## System Architecture
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│    CLI Tool      │     │   Web Portal     │     │   REST Client   │
-│  (insighta-cli) │     │ (insighta-web)   │     │ (Postman/curl)  │
-└────────┬─────────┘     └────────┬─────────┘     └────────┬────────┘
-         │                        │                         │
-         └────────────────────────┼─────────────────────────┘
-                                  │
-                       ┌──────────▼──────────┐
-                       │   Django Backend     │
-                       │   REST API           │
-                       │   (Railway)          │
-                       └──────────┬──────────┘
-                                  │
-               ┌──────────────────┼──────────────────┐
-               │                  │                  │
-      ┌────────▼────────┐  ┌──────▼──────┐  ┌───────▼────────┐
-      │   PostgreSQL     │  │   GitHub    │  │  External APIs  │
-      │   (Railway)      │  │   OAuth     │  │  genderize.io  │
-      └──────────────────┘  └─────────────┘  │  agify.io      │
-                                              │  nationalize.io│
-                                              └────────────────┘
+   ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+   │     CLI Tool     │    │    Web Portal    │    │   REST Client    │
+   │  (insighta-cli)  │    │  (insighta-web)  │    │  (Postman/curl)  │
+   └────────┬─────────┘    └────────┬─────────┘    └────────┬─────────┘
+            │                       │                       │
+            └───────────────────────┼───────────────────────┘
+                                    │ HTTPS / JSON
+                                    ▼
+                         ┌─────────────────────┐
+                         │   Django Backend    │
+                         │      REST API       │
+                         │      (Railway)      │
+                         └──┬───────┬───────┬──┘
+                            │       │       │
+           ┌────────────────┘       │       └────────────────┐
+           │                        │                        │
+           ▼ SQL                    ▼ OAuth 2.0              ▼ HTTPS / JSON
+   ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+   │    PostgreSQL    │    │   GitHub OAuth   │    │  External APIs   │
+   │    (Railway)     │    │ (Auth Provider)  │    │ • genderize.io   │
+   │                  │    │                  │    │ • agify.io       │
+   │                  │    │                  │    │ • nationalize.io │
+   └──────────────────┘    └──────────────────┘    └──────────────────┘
 ```
 
 ### Repositories
