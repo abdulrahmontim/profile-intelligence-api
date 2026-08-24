@@ -70,13 +70,10 @@ class ProfileListCreateView(APIView):
                                  "message": "Nationalize returned an invalid response"},
                                 status=status.HTTP_502_BAD_GATEWAY)
 
-            top_country = None
-            highest_prob = 0
-
-            for country in nationality_res["country"]:
-                if country['probability'] > highest_prob:
-                    highest_prob = country['probability']
-                    top_country = country
+            top_country = max(
+                nationality_res["country"],
+                key=lambda country: country["probability"]
+            )
 
             age_group = None
             profile_age = age_res.get("age")
