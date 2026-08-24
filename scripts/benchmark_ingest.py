@@ -176,7 +176,7 @@ def main():
     # 6. report
     print("\n--- SUMMARY ---")
     print(f"label={args.label} | rows={n:,} | {mb:.1f}MB | {elapsed:.1f}s | "
-          f"{int(n / elapsed):,}/s | peak_rss="
+          f"{int(n / elapsed):,}/s | peak_mem="
           + (f"{peak_mb:.0f}MB" if peak_mb else "n/a")
           + f" | inserted={inserted:,} | skipped={skipped:,}")
 

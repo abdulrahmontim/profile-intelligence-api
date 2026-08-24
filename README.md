@@ -155,22 +155,22 @@ user.save()
 
 ## Load Test — CSV Ingestion & Query Performance
 
-Benchmarked locally (Django dev server, SQLite, Windows). Peak memory =
-server process RSS sampled every second during upload. Reproduce:
+Benchmarked locally (Django dev server, SQLite, Windows). Memory used =
+RAM held by the server process, sampled every second during upload. Reproduce:
 `python scripts/benchmark_ingest.py --rows 500000 --out big.csv`
 
 ### Ingestion
 
-| Scenario          | Rows    | File    | Wall   | Throughput | Peak mem | Inserted | Skipped  |
-|-------------------|---------|---------|--------|------------|----------|----------|----------|
-| Fresh insert      | 50,000  | 2.9 MB  | 19.3s  | 2,593/s    | 101 MB   | 50,000   | 0        |
-| Fresh insert      | 100,000 | 5.8 MB  | 43.1s  | 2,318/s    | 105 MB   | 100,000  | 0        |
-| Fresh insert      | 500,000 | 29.5 MB | 207.3s | 2,411/s    | 170 MB   | 500,000  | 0        |
-| Re-upload (dedup) | 500,000 | 29.5 MB | 29.5s  | 16,976/s   | 173 MB   | 0        | 500,000  |
+| Scenario          | Rows    | File    | Ingest time | Speed    | Memory used | Inserted | Skipped  |
+|-------------------|---------|---------|-------------|----------|-------------|----------|----------|
+| Fresh insert      | 50,000  | 2.9 MB  | 19.3s       | 2,593/s  | 101 MB      | 50,000   | 0        |
+| Fresh insert      | 100,000 | 5.8 MB  | 43.1s       | 2,318/s  | 105 MB      | 100,000  | 0        |
+| Fresh insert      | 500,000 | 29.5 MB | 207.3s      | 2,411/s  | 170 MB      | 500,000  | 0        |
+| Re-upload (dedup) | 500,000 | 29.5 MB | 29.5s       | 16,976/s | 173 MB      | 0        | 500,000  |
 
-- Throughput stays flat (~2.4–2.6K rows/s) across a 10x size increase — chunked
+- Speed stays flat (~2.4–2.6K rows/s) across a 10x size increase — chunked
   bulk inserts prevent degradation
-- Peak memory grows sub-linearly: 10x data costs only 1.68x more RSS
+- Memory used grows sub-linearly: 10x data costs only 1.68x more memory
 - Re-uploading an identical file creates **zero duplicates** (chunk-level name
   checks + `bulk_create(ignore_conflicts=True)`) and runs 7x faster than inserts
 
