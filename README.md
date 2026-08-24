@@ -412,7 +412,7 @@ gunicorn profile_intelligence.wsgi:application --bind 0.0.0.0:$PORT
 | Scope | Limit |
 |-------|-------|
 | `/auth/*` endpoints | 10 requests / minute |
-| `/api/*` endpoints | 60 requests / minute per user |
+
 
 Returns `429 Too Many Requests` when exceeded.
 
