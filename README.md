@@ -3,6 +3,9 @@
 A secure, multi-interface platform for querying and managing profile intelligence data.
 Built for analysts, engineers, and internal stakeholders across CLI and web interfaces.
 
+> **Design deep-dive:** See [SOLUTION.md](SOLUTION.md) for the engineering rationale behind
+> the Stage 4B optimizations — performance benchmarks, design decisions, and trade-off analysis.
+
 ---
 
 ## System Architecture
@@ -121,7 +124,9 @@ user.role = "admin"
 user.save()
 ```
 ## Stage 4B Optimizations
- 
+
+> Full implementation details, design decisions, and trade-offs for this stage are documented in [SOLUTION.md](SOLUTION.md).
+
 ### Query Performance
  
 **Indexes added:**
