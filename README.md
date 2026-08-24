@@ -156,7 +156,7 @@ user.save()
 ## Load Test — CSV Ingestion & Query Performance
 
 Benchmarked locally (Django dev server, SQLite, Windows). Memory used =
-server process RSS sampled every second during upload. Reproduce:
+RAM held by the server process, sampled every second during upload. Reproduce:
 `python scripts/benchmark_ingest.py --rows 500000 --out big.csv`
 
 ### Ingestion
@@ -170,7 +170,7 @@ server process RSS sampled every second during upload. Reproduce:
 
 - Speed stays flat (~2.4–2.6K rows/s) across a 10x size increase — chunked
   bulk inserts prevent degradation
-- Memory used grows sub-linearly: 10x data costs only 1.68x more RSS
+- Memory used grows sub-linearly: 10x data costs only 1.68x more memory
 - Re-uploading an identical file creates **zero duplicates** (chunk-level name
   checks + `bulk_create(ignore_conflicts=True)`) and runs 7x faster than inserts
 

@@ -381,7 +381,7 @@ There is no rollback. This matches the spec requirement:
 ## Appendix: Measured Benchmark Results
 
 Environment: Django dev server, SQLite, Windows, single process.
-Methodology: synthetic unique-name CSVs; server RSS sampled at 1 Hz;
+Methodology: synthetic unique-name CSVs; server memory sampled at 1 Hz;
 row counts verified through the public API after import.
 Harness: `scripts/benchmark_ingest.py`.
 
