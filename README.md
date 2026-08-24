@@ -91,8 +91,8 @@ Terminal              Local Server (port 9876)        Backend
 ### Token Lifecycle
 | Token | Expiry | Storage |
 |-------|--------|---------|
-| Access token | 3 minutes | CLI: credentials.json / Web: HttpOnly cookie |
-| Refresh token | 5 minutes | DB (invalidated on use) |
+| Access token | 10 minutes | CLI: credentials.json / Web: HttpOnly cookie |
+| Refresh token | 12 hours | DB (invalidated on use) |
 
 - Each refresh issues a **new pair** and immediately invalidates the old one
 - Logout invalidates the refresh token server-side
