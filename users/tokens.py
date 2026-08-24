@@ -11,7 +11,7 @@ def issue_access_token(user):
         "user_id": str(user.id),
         "username": user.username,
         "role": user.role,
-        "exp": timezone.now() + timedelta(minutes=10)
+        "exp": timezone.now() + timedelta(minutes=settings.ACCESS_TOKEN_MINUTES)
     }
 
     return jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
@@ -19,7 +19,7 @@ def issue_access_token(user):
 
 def issue_refresh_token(user):
     refresh_token = secrets.token_urlsafe(64)
-    exp = timezone.now() + timedelta(minutes=60)
+    exp = timezone.now() + timedelta(hours=settings.REFRESH_TOKEN_HOURS)
     RefreshToken.objects.create(
         user=user,
         token=refresh_token,
